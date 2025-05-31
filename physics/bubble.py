@@ -24,7 +24,7 @@ class FloatingBubble:
         self.last_price_change = self.price_change
         self.screen_size = screen_size
         
-        # Calculate bubble size
+        # Calculate bubble size based on market cap
         market_cap_normalized = max(1e6, min(self.market_cap, 1e12))
         size_factor = math.sqrt(market_cap_normalized / 1e9)
         
@@ -33,23 +33,17 @@ class FloatingBubble:
         self.radius = min_radius + (max_radius - min_radius) * min(1.0, size_factor / 5.0)
         self.area = math.pi * self.radius * self.radius
         
-        # Set bounds with safety margin
-        safety_margin = self.radius + 10
-        self.bounds = pygame.Rect(
-            bounds.left + safety_margin,
-            bounds.top + safety_margin,
-            bounds.width - 2 * safety_margin,
-            bounds.height - 2 * safety_margin
-        )
+        # Set bounds with safety margin - MELHORADO para redimensionamento
+        self.update_bounds(bounds)
         
         # Create physics body
         mass = self.radius / 25
         moment = pymunk.moment_for_circle(mass, 0, self.radius)
         self.body = pymunk.Body(mass, moment)
         
-        # Safe initial position
-        x = random.uniform(self.bounds.left, self.bounds.right)
-        y = random.uniform(self.bounds.top, self.bounds.bottom)
+        # Safe initial position within bounds
+        x = random.uniform(self.bounds.left + self.radius, self.bounds.right - self.radius)
+        y = random.uniform(self.bounds.top + self.radius, self.bounds.bottom - self.radius)
         self.body.position = (x, y)
         
         # Physics properties
@@ -58,7 +52,7 @@ class FloatingBubble:
         self.shape.friction = PHYSICS['bubble_friction']
         space.add(self.body, self.shape)
         
-        # Animation properties
+        # Enhanced animation properties
         self.float_offset_x = random.uniform(0, 2 * math.pi)
         self.float_offset_y = random.uniform(0, 2 * math.pi)
         self.float_speed_x = random.uniform(0.002, 0.006)
@@ -86,6 +80,42 @@ class FloatingBubble:
                 self.logo_surface = pygame.transform.smoothscale(logo_img, (logo_size, logo_size))
             except Exception as e:
                 print(f"Error loading logo for {self.symbol}: {e}")
+    
+    def update_bounds(self, new_bounds):
+        """Update the boundary constraints for this bubble"""
+        safety_margin = self.radius + 15  # Increased margin for better spacing
+        
+        # Ensure minimum bounds size
+        min_width = 200
+        min_height = 200
+        
+        actual_width = max(min_width, new_bounds.width - 2 * safety_margin)
+        actual_height = max(min_height, new_bounds.height - 2 * safety_margin)
+        
+        self.bounds = pygame.Rect(
+            new_bounds.left + safety_margin,
+            new_bounds.top + safety_margin,
+            actual_width,
+            actual_height
+        )
+        
+        # If bubble is outside new bounds, reposition it
+        if hasattr(self, 'body'):
+            self.ensure_within_bounds()
+    
+    def ensure_within_bounds(self):
+        """Ensure bubble is within current bounds"""
+        x, y = self.body.position
+        
+        # Check and correct position if outside bounds
+        corrected_x = max(self.bounds.left, min(self.bounds.right, x))
+        corrected_y = max(self.bounds.top, min(self.bounds.bottom, y))
+        
+        if corrected_x != x or corrected_y != y:
+            self.body.position = (corrected_x, corrected_y)
+            # Dampen velocity when repositioning
+            vx, vy = self.body.velocity
+            self.body.velocity = (vx * 0.5, vy * 0.5)
     
     def calculate_scaling_factors(self):
         """Calculate all scaling factors"""
@@ -119,6 +149,7 @@ class FloatingBubble:
             new_radius = min_radius + (max_radius - min_radius) * min(1.0, size_factor / 5.0)
             
             if abs(new_radius - self.radius) > 3:
+                old_radius = self.radius
                 self.radius = new_radius
                 self.area = math.pi * self.radius * self.radius
                 self.calculate_scaling_factors()
@@ -131,6 +162,8 @@ class FloatingBubble:
                     self.shape.elasticity = PHYSICS['bubble_elasticity']
                     self.shape.friction = PHYSICS['bubble_friction']
                     space.add(self.shape)
+                    
+                print(f"📏 {self.symbol} radius: {old_radius:.1f} → {new_radius:.1f}")
 
     def update_data(self, new_coin_data):
         """Update bubble with new market data"""
@@ -148,7 +181,7 @@ class FloatingBubble:
         self.market_cap = new_coin_data.get('market_cap', self.market_cap) or self.market_cap
 
     def apply_boundary_forces(self):
-        """Apply gentle floating forces and boundary constraints"""
+        """Enhanced gentle floating forces with improved boundary handling"""
         x, y = self.body.position
         vx, vy = self.body.velocity
         
@@ -160,7 +193,7 @@ class FloatingBubble:
             vy *= scale
             self.body.velocity = (vx, vy)
         
-        # Gentle floating motion
+        # Enhanced gentle floating motion
         current_time = time.time()
         float_force_x = math.sin(current_time * self.float_speed_x + self.float_offset_x) * self.float_amplitude_x * 0.06
         float_force_y = math.cos(current_time * self.float_speed_y + self.float_offset_y) * self.float_amplitude_y * 0.08
@@ -169,12 +202,13 @@ class FloatingBubble:
         drift_force_x = math.cos(current_time * 0.0008 + self.float_offset_x * 0.5) * 0.03
         drift_force_y = math.sin(current_time * 0.001 + self.float_offset_y * 0.7) * 0.03
         
-        # Soft boundary forces
+        # MELHORADOS: Soft boundary forces com melhor resposta aos limites
         boundary_force_x = 0
         boundary_force_y = 0
-        force_strength = 0.5
-        boundary_zone = self.radius * 2
+        force_strength = 0.8  # Increased for better boundary enforcement
+        boundary_zone = self.radius * 3  # Larger boundary zone
         
+        # Horizontal boundaries
         if x < self.bounds.left + boundary_zone:
             push_factor = 1.0 - (x - self.bounds.left) / boundary_zone
             boundary_force_x = push_factor * force_strength
@@ -182,6 +216,7 @@ class FloatingBubble:
             push_factor = 1.0 - (self.bounds.right - x) / boundary_zone
             boundary_force_x = -push_factor * force_strength
             
+        # Vertical boundaries
         if y < self.bounds.top + boundary_zone:
             push_factor = 1.0 - (y - self.bounds.top) / boundary_zone
             boundary_force_y = push_factor * force_strength
@@ -189,40 +224,47 @@ class FloatingBubble:
             push_factor = 1.0 - (self.bounds.bottom - y) / boundary_zone
             boundary_force_y = -push_factor * force_strength
         
-        # Apply velocity damping
+        # Apply enhanced velocity damping
         self.body.velocity = (vx * self.velocity_damping, vy * self.velocity_damping)
         
-        # Apply all forces
+        # Apply all gentle forces
         total_force_x = float_force_x + drift_force_x + boundary_force_x
         total_force_y = float_force_y + drift_force_y + boundary_force_y
         
         self.body.apply_force_at_local_point((total_force_x, total_force_y), (0, 0))
         
-        # Hard boundary correction
+        # MELHORADO: Hard boundary correction with better constraint
+        corrected = False
+        new_x, new_y = x, y
+        new_vx, new_vy = vx, vy
+        
         if x < self.bounds.left:
-            self.body.position = (self.bounds.left, y)
-            self.body.velocity = (max(0, vx * 0.2), vy * 0.8)
+            new_x = self.bounds.left
+            new_vx = max(0, vx * 0.3)  # Stronger damping
+            corrected = True
         elif x > self.bounds.right:
-            self.body.position = (self.bounds.right, y)
-            self.body.velocity = (min(0, vx * 0.2), vy * 0.8)
+            new_x = self.bounds.right
+            new_vx = min(0, vx * 0.3)
+            corrected = True
             
         if y < self.bounds.top:
-            self.body.position = (self.body.position.x, self.bounds.top)
-            self.body.velocity = (vx * 0.8, max(0, vy * 0.2))
+            new_y = self.bounds.top
+            new_vy = max(0, vy * 0.3)
+            corrected = True
         elif y > self.bounds.bottom:
-            self.body.position = (self.body.position.x, self.bounds.bottom)
-            self.body.velocity = (vx * 0.8, min(0, vy * 0.2))
+            new_y = self.bounds.bottom
+            new_vy = min(0, vy * 0.3)
+            corrected = True
+        
+        if corrected:
+            self.body.position = (new_x, new_y)
+            self.body.velocity = (new_vx, new_vy)
 
     def update(self, bounds):
         """Update bubble physics and effects"""
-        # Update bounds if changed
-        safety_margin = self.radius + 10
-        self.bounds = pygame.Rect(
-            bounds.left + safety_margin,
-            bounds.top + safety_margin,
-            bounds.width - 2 * safety_margin,
-            bounds.height - 2 * safety_margin
-        )
+        # Update bounds if they changed
+        if bounds != self.bounds:
+            self.update_bounds(bounds)
         
         self.apply_boundary_forces()
         
@@ -244,6 +286,9 @@ class FloatingBubble:
     def draw(self, surface):
         """Draw bubble with improved text spacing"""
         x, y = int(self.body.position.x), int(self.body.position.y)
+        
+        # Debug: draw boundary (remove this in production)
+        # pygame.draw.rect(surface, (255, 0, 0), self.bounds, 1)
         
         # Determine colors
         is_negative = self.price_change < 0

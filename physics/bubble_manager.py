@@ -61,23 +61,77 @@ class BubbleManager:
         self.bubbles = []
         self.bubbles_created = False
         self.last_bubble_update = time.time()
+        self.last_boundary_update = time.time()
         self.update_scheduler = BubbleUpdateScheduler()
         self.lock = Lock()
+        self.current_bubble_area = None
+        self.last_screen_size = (0, 0)
         
+    def get_bubble_area(self, screen_size):
+        """Calculate the bubble area based on current screen size"""
+        width, height = screen_size
+        return pygame.Rect(0, 0, int(width * LAYOUT['bubble_width_ratio']), 
+                          int(height * LAYOUT['bubble_height_ratio']))
+    
+    def redistribute_bubbles(self, new_bubble_area):
+        """Redistribute bubbles when screen size changes significantly"""
+        if not self.bubbles or not new_bubble_area:
+            return
+        
+        print(f"🔄 Redistributing {len(self.bubbles)} bubbles to new area: {new_bubble_area.width}x{new_bubble_area.height}")
+        
+        with self.lock:
+            import random
+            
+            for bubble in self.bubbles:
+                # Calculate safe position within new bounds
+                safety_margin = bubble.radius + 20
+                safe_area = pygame.Rect(
+                    new_bubble_area.left + safety_margin,
+                    new_bubble_area.top + safety_margin,
+                    max(100, new_bubble_area.width - 2 * safety_margin),
+                    max(100, new_bubble_area.height - 2 * safety_margin)
+                )
+                
+                # Get current position
+                current_x, current_y = bubble.body.position
+                
+                # Check if bubble is outside new safe area
+                if (current_x < safe_area.left or current_x > safe_area.right or
+                    current_y < safe_area.top or current_y > safe_area.bottom):
+                    
+                    # Reposition bubble within safe area
+                    new_x = random.uniform(safe_area.left, safe_area.right)
+                    new_y = random.uniform(safe_area.top, safe_area.bottom)
+                    
+                    bubble.body.position = (new_x, new_y)
+                    bubble.body.velocity = (0, 0)  # Reset velocity
+                    
+                    print(f"📍 Moved {bubble.symbol} from ({current_x:.0f},{current_y:.0f}) to ({new_x:.0f},{new_y:.0f})")
+                
+                # Update bubble's boundary constraints
+                bubble.bounds = pygame.Rect(
+                    safe_area.left,
+                    safe_area.top,
+                    safe_area.width,
+                    safe_area.height
+                )
+    
     def initialize_bubbles_if_needed(self, crypto_data, screen_size):
         """Create initial bubbles if they haven't been created yet"""
         if not self.bubbles_created and crypto_data:
-            width, height = screen_size
-            bubble_area = pygame.Rect(0, 0, int(width * LAYOUT['bubble_width_ratio']), 
-                                    int(height * LAYOUT['bubble_height_ratio']))
+            bubble_area = self.get_bubble_area(screen_size)
             self.create_initial_bubbles(crypto_data, bubble_area, screen_size)
             self.bubbles_created = True
+            self.current_bubble_area = bubble_area
+            self.last_screen_size = screen_size
             print(f"Bubble manager initialized with {len(self.bubbles)} bubbles!")
     
     def create_initial_bubbles(self, crypto_data, bubble_area, screen_size):
         """Create initial bubbles for top cryptocurrencies"""
         with self.lock:
             print(f"Creating bubbles for top {min(MAX_BUBBLES, len(crypto_data))} cryptocurrencies...")
+            print(f"Bubble area: {bubble_area.width}x{bubble_area.height}")
             
             for coin in crypto_data[:MAX_BUBBLES]:
                 try:
@@ -91,9 +145,30 @@ class BubbleManager:
     
     def update_screen_size(self, screen_size):
         """Update all bubbles when screen size changes"""
-        with self.lock:
-            for bubble in self.bubbles:
-                bubble.update_radius_for_screen(screen_size)
+        if not self.bubbles:
+            return
+        
+        # Check if screen size changed significantly
+        width_diff = abs(screen_size[0] - self.last_screen_size[0])
+        height_diff = abs(screen_size[1] - self.last_screen_size[1])
+        
+        # Only update if change is significant (more than 50 pixels)
+        if width_diff > 50 or height_diff > 50:
+            print(f"🖥️ Screen size changed: {self.last_screen_size} → {screen_size}")
+            
+            new_bubble_area = self.get_bubble_area(screen_size)
+            
+            # Update bubble radius for screen size
+            with self.lock:
+                for bubble in self.bubbles:
+                    bubble.update_radius_for_screen(screen_size)
+            
+            # Redistribute bubbles to new area
+            self.redistribute_bubbles(new_bubble_area)
+            
+            self.current_bubble_area = new_bubble_area
+            self.last_screen_size = screen_size
+            self.last_boundary_update = time.time()
     
     def update(self, crypto_data):
         """Update bubbles with new data periodically"""
@@ -101,6 +176,8 @@ class BubbleManager:
             return
             
         now = time.time()
+        
+        # Update bubble data periodically
         if now - self.last_bubble_update > UPDATE_INTERVAL:
             with self.lock:
                 # Remove bubbles for coins no longer in top list
@@ -117,15 +194,14 @@ class BubbleManager:
                     self.bubbles.remove(bubble)
                 
                 # Add new bubbles for new coins in top list
-                width, height = 1280, 720  # Default size, will be updated
-                bubble_area = pygame.Rect(0, 0, int(width * LAYOUT['bubble_width_ratio']), 
-                                        int(height * LAYOUT['bubble_height_ratio']))
+                current_bubble_area = self.current_bubble_area or self.get_bubble_area(self.last_screen_size)
                 
                 for coin in crypto_data[:MAX_BUBBLES]:
                     symbol = coin['symbol'].upper()
                     if symbol not in existing_symbols:
                         try:
-                            self.bubbles.append(FloatingBubble(self.space, coin, bubble_area, (width, height)))
+                            new_bubble = FloatingBubble(self.space, coin, current_bubble_area, self.last_screen_size)
+                            self.bubbles.append(new_bubble)
                         except Exception as e:
                             print(f"Error creating bubble for {symbol}: {e}")
                 
@@ -144,20 +220,15 @@ class BubbleManager:
         # Process scheduled updates
         self.update_scheduler.process_updates()
         
-        # Update all bubbles
-        with self.lock:
-            width, height = 1280, 720  # Will be updated from actual screen size
-            bubble_area = pygame.Rect(0, 0, int(width * LAYOUT['bubble_width_ratio']), 
-                                    int(height * LAYOUT['bubble_height_ratio']))
-            
-            for bubble in self.bubbles:
-                bubble.update(bubble_area)
+        # Update all bubbles with current boundary constraints
+        if self.current_bubble_area:
+            with self.lock:
+                for bubble in self.bubbles:
+                    bubble.update(self.current_bubble_area)
     
     def handle_click(self, mouse_pos, modal_manager, screen_size):
         """Handle mouse clicks on bubbles"""
-        width, height = screen_size
-        bubble_area = pygame.Rect(0, 0, int(width * LAYOUT['bubble_width_ratio']), 
-                                int(height * LAYOUT['bubble_height_ratio']))
+        bubble_area = self.get_bubble_area(screen_size)
         
         if bubble_area.collidepoint(mouse_pos):
             with self.lock:
@@ -171,6 +242,20 @@ class BubbleManager:
     def render(self, screen, layout_areas):
         """Render all bubbles"""
         bubble_area = layout_areas['bubble_area']
+        
+        # Update current bubble area if it changed
+        if self.current_bubble_area != bubble_area:
+            self.current_bubble_area = bubble_area
+            # Force boundary update for all bubbles
+            with self.lock:
+                for bubble in self.bubbles:
+                    safety_margin = bubble.radius + 10
+                    bubble.bounds = pygame.Rect(
+                        bubble_area.left + safety_margin,
+                        bubble_area.top + safety_margin,
+                        max(100, bubble_area.width - 2 * safety_margin),
+                        max(100, bubble_area.height - 2 * safety_margin)
+                    )
         
         # Draw bubble area background
         pygame.draw.rect(screen, COLORS['bubble_area'], bubble_area)
@@ -201,3 +286,11 @@ class BubbleManager:
         """Get current number of bubbles"""
         with self.lock:
             return len(self.bubbles)
+    
+    def force_redistribute(self, screen_size):
+        """Force redistribution of bubbles (useful for testing)"""
+        new_bubble_area = self.get_bubble_area(screen_size)
+        self.redistribute_bubbles(new_bubble_area)
+        self.current_bubble_area = new_bubble_area
+        self.last_screen_size = screen_size
+        print(f"🔄 Forced redistribution to area: {new_bubble_area.width}x{new_bubble_area.height}")

@@ -43,7 +43,7 @@ DAILY_RANKS_FILE = "daily_ranks.json"
 # Font sizes
 FONT_SIZES = {
     'title': 22,
-    'header': 18,
+    'header': 15,
     'large': 16,
     'normal': 14,
     'small': 12,

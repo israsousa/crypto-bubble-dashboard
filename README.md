@@ -1,3 +1,10 @@
+![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)
+![Pygame](https://img.shields.io/badge/Pygame-2.5+-green.svg)
+![License](https://img.shields.io/badge/License-MIT-red.svg)
+![GitHub Stars](https://img.shields.io/github/stars/SEU-USERNAME/crypto-bubble-dashboard)
+![GitHub Forks](https://img.shields.io/github/forks/SEU-USERNAME/crypto-bubble-dashboard)
+![GitHub Issues](https://img.shields.io/github/issues/SEU-USERNAME/crypto-bubble-dashboard)
+
 # 🚀 Crypto Bubble Dashboard
 
 Um dashboard interativo em tempo real para visualização de criptomoedas com bolhas flutuantes, gráficos detalhados e análise de mercado.

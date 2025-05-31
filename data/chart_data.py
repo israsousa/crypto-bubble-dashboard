@@ -1,7 +1,7 @@
 """
 Chart data generation for cryptocurrency prices
 """
-
+import pygame
 import random
 import time
 import datetime

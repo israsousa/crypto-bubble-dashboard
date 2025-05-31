@@ -1,0 +1,24 @@
+# Cache e dados temporários
+cache/
+*.pkl
+*.json
+assets/logos/
+logs/
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+venv/
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db

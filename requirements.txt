@@ -1,0 +1,18 @@
+
+# Core dependencies
+pygame>=2.5.0
+pymunk>=6.4.0
+requests>=2.31.0
+Pillow>=10.0.0
+
+# Optional dependencies for enhanced features
+matplotlib>=3.7.0
+numpy>=1.24.0
+
+# Development dependencies (optional)
+pytest>=7.4.0
+black>=23.0.0
+flake8>=6.0.0
+
+# For better performance (optional)
+psutil>=5.9.0

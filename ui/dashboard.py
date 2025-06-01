@@ -26,8 +26,6 @@ class Dashboard:
     def __init__(self):
         self.crypto_table = CryptoTable()
         self.last_update = time.time()
-        self.layout_cache = {}
-        self.last_screen_size = (0, 0)
         
     def load_initial_data(self):
         """Load initial data for the dashboard"""
@@ -87,33 +85,15 @@ class Dashboard:
         """Force complete loading (for manual skip)"""
         loading_complete.set()
     
-    def force_layout_update(self):
-        """Force layout recalculation (for fullscreen transitions)"""
-        print("🔄 Dashboard: Forcing layout update...")
-        self.layout_cache.clear()
-        self.last_screen_size = (0, 0)  # Force recalculation
-        
-        # Force crypto table to recalculate
-        self.crypto_table = CryptoTable()
-        
-        print("✅ Dashboard: Layout update complete")
-    
     def get_crypto_data(self):
         """Get current cryptocurrency data"""
         return get_crypto_data()
     
     def get_layout_areas(self, screen_size):
-        """Calculate layout areas for different components with caching"""
+        """Calculate layout areas for different components"""
         width, height = screen_size
         
-        # Use cache if screen size hasn't changed significantly
-        if (abs(width - self.last_screen_size[0]) < 10 and 
-            abs(height - self.last_screen_size[1]) < 10 and 
-            screen_size in self.layout_cache):
-            return self.layout_cache[screen_size]
-        
-        # Calculate new layout
-        layout_areas = {
+        return {
             'bubble_area': pygame.Rect(0, 0, 
                                      int(width * LAYOUT['bubble_width_ratio']), 
                                      int(height * LAYOUT['bubble_height_ratio'])),
@@ -129,12 +109,6 @@ class Dashboard:
                                    int(width * LAYOUT['news_width_ratio']), 
                                    int(height * LAYOUT['fear_greed_height_ratio']))
         }
-        
-        # Cache the result
-        self.layout_cache[screen_size] = layout_areas
-        self.last_screen_size = screen_size
-        
-        return layout_areas
     
     def update(self):
         """Update dashboard components"""

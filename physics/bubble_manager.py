@@ -1,5 +1,6 @@
 """
 Bubble Manager for handling multiple cryptocurrency bubbles
+FIXED: Updated imports to use EnhancedFloatingBubble
 """
 
 import pygame
@@ -7,7 +8,7 @@ import time
 from threading import Lock
 
 from config.settings import *
-from physics.bubble import FloatingBubble
+from physics.bubble import EnhancedFloatingBubble  # FIXED IMPORT
 from utils.data_loader import update_loading_state
 
 class BubbleUpdateScheduler:
@@ -78,7 +79,7 @@ class BubbleManager:
         if not self.bubbles or not new_bubble_area:
             return
         
-        print(f"🔄 Redistributing {len(self.bubbles)} bubbles to new area: {new_bubble_area.width}x{new_bubble_area.height}")
+        print(f"🔄 Redistributing {len(self.bubbles)} enhanced bubbles to new area: {new_bubble_area.width}x{new_bubble_area.height}")
         
         with self.lock:
             import random
@@ -118,29 +119,30 @@ class BubbleManager:
                 )
     
     def initialize_bubbles_if_needed(self, crypto_data, screen_size):
-        """Create initial bubbles if they haven't been created yet"""
+        """Create initial enhanced bubbles if they haven't been created yet"""
         if not self.bubbles_created and crypto_data:
             bubble_area = self.get_bubble_area(screen_size)
             self.create_initial_bubbles(crypto_data, bubble_area, screen_size)
             self.bubbles_created = True
             self.current_bubble_area = bubble_area
             self.last_screen_size = screen_size
-            print(f"Bubble manager initialized with {len(self.bubbles)} bubbles!")
+            print(f"✨ Enhanced bubble manager initialized with {len(self.bubbles)} smooth floating bubbles!")
     
     def create_initial_bubbles(self, crypto_data, bubble_area, screen_size):
-        """Create initial bubbles for top cryptocurrencies"""
+        """Create initial enhanced bubbles for top cryptocurrencies"""
         with self.lock:
-            print(f"Creating bubbles for top {min(MAX_BUBBLES, len(crypto_data))} cryptocurrencies...")
-            print(f"Bubble area: {bubble_area.width}x{bubble_area.height}")
+            print(f"🫧 Creating enhanced floating bubbles for top {min(MAX_BUBBLES, len(crypto_data))} cryptocurrencies...")
+            print(f"📐 Bubble area: {bubble_area.width}x{bubble_area.height}")
             
             for coin in crypto_data[:MAX_BUBBLES]:
                 try:
-                    bubble = FloatingBubble(self.space, coin, bubble_area, screen_size)
+                    # FIXED: Use EnhancedFloatingBubble
+                    bubble = EnhancedFloatingBubble(self.space, coin, bubble_area, screen_size)
                     self.bubbles.append(bubble)
                 except Exception as e:
-                    print(f"Error creating bubble for {coin.get('symbol', 'Unknown')}: {e}")
+                    print(f"❌ Error creating enhanced bubble for {coin.get('symbol', 'Unknown')}: {e}")
             
-            print(f"Created {len(self.bubbles)} bubbles successfully")
+            print(f"✅ Created {len(self.bubbles)} enhanced floating bubbles successfully")
             update_loading_state('bubbles_ready', True)
     
     def update_screen_size(self, screen_size):
@@ -161,7 +163,8 @@ class BubbleManager:
             # Update bubble radius for screen size
             with self.lock:
                 for bubble in self.bubbles:
-                    bubble.update_radius_for_screen(screen_size)
+                    if hasattr(bubble, 'update_radius_for_screen'):
+                        bubble.update_radius_for_screen(screen_size)
             
             # Redistribute bubbles to new area
             self.redistribute_bubbles(new_bubble_area)
@@ -200,10 +203,11 @@ class BubbleManager:
                     symbol = coin['symbol'].upper()
                     if symbol not in existing_symbols:
                         try:
-                            new_bubble = FloatingBubble(self.space, coin, current_bubble_area, self.last_screen_size)
+                            # FIXED: Use EnhancedFloatingBubble
+                            new_bubble = EnhancedFloatingBubble(self.space, coin, current_bubble_area, self.last_screen_size)
                             self.bubbles.append(new_bubble)
                         except Exception as e:
-                            print(f"Error creating bubble for {symbol}: {e}")
+                            print(f"❌ Error creating enhanced bubble for {symbol}: {e}")
                 
                 # Trim to exactly MAX_BUBBLES
                 if len(self.bubbles) > MAX_BUBBLES:
@@ -235,12 +239,12 @@ class BubbleManager:
                 for bubble in self.bubbles:
                     if bubble.check_click(mouse_pos):
                         modal_manager.open_crypto_modal(bubble.coin_data, screen_size)
-                        print(f"Opened details for {bubble.symbol}")
+                        print(f"🚀 Opened enhanced modal for {bubble.symbol}")
                         return True
         return False
     
     def render(self, screen, layout_areas):
-        """Render all bubbles"""
+        """Render all enhanced floating bubbles"""
         bubble_area = layout_areas['bubble_area']
         
         # Update current bubble area if it changed
@@ -261,7 +265,7 @@ class BubbleManager:
         pygame.draw.rect(screen, COLORS['bubble_area'], bubble_area)
         pygame.draw.rect(screen, COLORS['border'], bubble_area, 2)
         
-        # Draw all bubbles
+        # Draw all enhanced floating bubbles
         with self.lock:
             for bubble in self.bubbles:
                 bubble.draw(screen)
@@ -271,7 +275,7 @@ class BubbleManager:
         with self.lock:
             bubble_count = len(self.bubbles)
         
-        title_surface = title_font.render(f"Crypto Live Dashboard - {bubble_count} Coins", 
+        title_surface = title_font.render(f"Enhanced Crypto Live Dashboard - {bubble_count} Floating Bubbles", 
                                         True, COLORS['text_primary'])
         title_rect = title_surface.get_rect(center=(bubble_area.centerx, 25))
         
@@ -283,7 +287,7 @@ class BubbleManager:
         screen.blit(title_surface, title_rect)
     
     def get_bubble_count(self):
-        """Get current number of bubbles"""
+        """Get current number of enhanced bubbles"""
         with self.lock:
             return len(self.bubbles)
     
@@ -293,4 +297,4 @@ class BubbleManager:
         self.redistribute_bubbles(new_bubble_area)
         self.current_bubble_area = new_bubble_area
         self.last_screen_size = screen_size
-        print(f"🔄 Forced redistribution to area: {new_bubble_area.width}x{new_bubble_area.height}")
+        print(f"🔄 Forced redistribution of enhanced bubbles to area: {new_bubble_area.width}x{new_bubble_area.height}")

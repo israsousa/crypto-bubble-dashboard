@@ -1,6 +1,6 @@
 """
-FloatingBubble com design original e animação melhorada
-Mantém o visual original mas com movimento mais fluido e natural
+Enhanced Bubble Physics with Smooth Soap Bubble Movement
+Realistic floating animation with soft, organic motion patterns
 """
 
 import pygame
@@ -14,8 +14,8 @@ from config.settings import *
 from ui.effects import FloatingEffect
 from utils.logo_loader import download_logo
 
-class FloatingBubble:
-    """Bolha flutuante com design original e animação melhorada"""
+class EnhancedFloatingBubble:
+    """Enhanced bubble with realistic soap bubble physics"""
     
     def __init__(self, space, coin_data, bounds, screen_size):
         self.coin_data = coin_data
@@ -25,7 +25,7 @@ class FloatingBubble:
         self.last_price_change = self.price_change
         self.screen_size = screen_size
         
-        # Calculate bubble size based on market cap (ORIGINAL)
+        # Calculate bubble size based on market cap
         market_cap_normalized = max(1e6, min(self.market_cap, 1e12))
         size_factor = math.sqrt(market_cap_normalized / 1e9)
         
@@ -37,8 +37,8 @@ class FloatingBubble:
         # Set bounds with safety margin
         self.update_bounds(bounds)
         
-        # Create physics body (ORIGINAL)
-        mass = self.radius / 25
+        # Enhanced physics body for smooth movement
+        mass = self.radius / 30  # Lighter for more floating effect
         moment = pymunk.moment_for_circle(mass, 0, self.radius)
         self.body = pymunk.Body(mass, moment)
         
@@ -47,40 +47,54 @@ class FloatingBubble:
         y = random.uniform(self.bounds.top + self.radius, self.bounds.bottom - self.radius)
         self.body.position = (x, y)
         
-        # Physics properties (ORIGINAL)
+        # Enhanced physics properties for soap bubble effect
         self.shape = pymunk.Circle(self.body, self.radius)
-        self.shape.elasticity = PHYSICS['bubble_elasticity']
-        self.shape.friction = PHYSICS['bubble_friction']
+        self.shape.elasticity = 0.2  # Soft bouncing
+        self.shape.friction = 0.1    # Low friction for floating
         space.add(self.body, self.shape)
         
-        # MELHORADA: Animação mais fluida e suave
-        self.float_offset_x = random.uniform(0, 2 * math.pi)
-        self.float_offset_y = random.uniform(0, 2 * math.pi)
+        # Enhanced floating parameters for organic movement
+        self.float_time = 0
+        self.float_speed_primary = random.uniform(0.3, 0.7)     # Primary wave
+        self.float_speed_secondary = random.uniform(0.5, 0.9)   # Secondary wave
+        self.float_speed_tertiary = random.uniform(0.1, 0.3)    # Micro movements
         
-        # Velocidades mais suaves para movimento fluido
-        self.float_speed_x = random.uniform(0.5, 1.2)  # Mais lento e suave
-        self.float_speed_y = random.uniform(0.6, 1.4)
+        # Multiple wave amplitudes for complex motion
+        self.amplitude_x_primary = random.uniform(0.4, 0.8)
+        self.amplitude_y_primary = random.uniform(0.5, 1.0)
+        self.amplitude_x_secondary = random.uniform(0.2, 0.4)
+        self.amplitude_y_secondary = random.uniform(0.2, 0.5)
+        self.amplitude_tertiary = random.uniform(0.1, 0.2)
         
-        # Amplitudes mais naturais
-        self.float_amplitude_x = random.uniform(0.3, 0.8)
-        self.float_amplitude_y = random.uniform(0.4, 1.0)
+        # Phase offsets for each wave
+        self.phase_x_primary = random.uniform(0, 2 * math.pi)
+        self.phase_y_primary = random.uniform(0, 2 * math.pi)
+        self.phase_x_secondary = random.uniform(0, 2 * math.pi)
+        self.phase_y_secondary = random.uniform(0, 2 * math.pi)
+        self.phase_tertiary = random.uniform(0, 2 * math.pi)
         
-        # Movimento adicional para mais fluidez
-        self.drift_speed = random.uniform(0.2, 0.5)
-        self.drift_amplitude = random.uniform(0.1, 0.3)
-        self.drift_offset = random.uniform(0, 2 * math.pi)
+        # Enhanced movement properties for smooth floating
+        self.velocity_smoothing = 0.95    # Smooth velocity changes
+        self.max_velocity = 8.0           # Gentle maximum speed
+        self.boundary_softness = 0.02     # Soft boundary forces
         
-        # Propriedades de movimento (MELHORADAS)
-        self.velocity_damping = 0.96  # Mais suave
-        self.max_velocity = 12.0  # Ligeiramente mais rápido para fluidez
+        # Natural drift simulation
+        self.drift_direction = random.uniform(0, 2 * math.pi)
+        self.drift_speed = random.uniform(0.1, 0.3)
+        self.drift_change_time = random.uniform(5.0, 15.0)
+        self.last_drift_change = time.time()
         
-        # Visual effects (ORIGINAL)
+        # Bubble surface tension simulation
+        self.surface_tension = random.uniform(0.8, 1.2)
+        self.air_resistance = 0.02
+        
+        # Visual effects
         self.effects = []
         
-        # Calculate scaling factors (ORIGINAL)
+        # Calculate scaling factors
         self.calculate_scaling_factors()
         
-        # Load logo (ORIGINAL)
+        # Load logo
         self.logo_surface = None
         logo_path = download_logo(self.symbol.lower(), coin_data.get('image', ''))
         if logo_path and os.path.exists(logo_path):
@@ -92,8 +106,8 @@ class FloatingBubble:
                 print(f"Error loading logo for {self.symbol}: {e}")
     
     def update_bounds(self, new_bounds):
-        """Update the boundary constraints for this bubble (ORIGINAL)"""
-        safety_margin = self.radius + 15
+        """Update boundary constraints with enhanced safety margins"""
+        safety_margin = self.radius + 20
         
         # Ensure minimum bounds size
         min_width = 200
@@ -109,26 +123,26 @@ class FloatingBubble:
             actual_height
         )
         
-        # If bubble is outside new bounds, reposition it
+        # If bubble is outside new bounds, reposition it gently
         if hasattr(self, 'body'):
             self.ensure_within_bounds()
     
     def ensure_within_bounds(self):
-        """Ensure bubble is within current bounds (ORIGINAL)"""
+        """Ensure bubble is within bounds with smooth correction"""
         x, y = self.body.position
         
-        # Check and correct position if outside bounds
+        # Gentle position correction
         corrected_x = max(self.bounds.left, min(self.bounds.right, x))
         corrected_y = max(self.bounds.top, min(self.bounds.bottom, y))
         
         if corrected_x != x or corrected_y != y:
             self.body.position = (corrected_x, corrected_y)
-            # Dampen velocity when repositioning
+            # Gentle velocity dampening instead of harsh reset
             vx, vy = self.body.velocity
-            self.body.velocity = (vx * 0.5, vy * 0.5)
+            self.body.velocity = (vx * 0.8, vy * 0.8)
     
     def calculate_scaling_factors(self):
-        """Calculate all scaling factors (ORIGINAL)"""
+        """Calculate all scaling factors for UI elements"""
         area_factor = self.area / (math.pi * 35 * 35)
         
         # Logo scaling
@@ -146,35 +160,127 @@ class FloatingBubble:
         # Text boundary limits
         self.text_boundary_factor = 0.8
 
-    def update_radius_for_screen(self, screen_size):
-        """Update bubble radius when screen size changes (ORIGINAL)"""
-        if abs(screen_size[0] - self.screen_size[0]) > 100 or abs(screen_size[1] - self.screen_size[1]) > 100:
-            self.screen_size = screen_size
+    def apply_enhanced_floating_forces(self):
+        """Apply enhanced floating forces for realistic soap bubble movement"""
+        x, y = self.body.position
+        vx, vy = self.body.velocity
+        
+        # Update float time for wave calculations
+        self.float_time += 1/60.0  # Assuming 60 FPS
+        
+        # Apply velocity smoothing first
+        speed = math.sqrt(vx*vx + vy*vy)
+        if speed > self.max_velocity:
+            scale = self.max_velocity / speed
+            vx *= scale
+            vy *= scale
+            self.body.velocity = (vx, vy)
+        
+        # Multi-layered wave motion for organic floating
+        # Primary wave (main floating motion)
+        primary_x = math.sin(self.float_time * self.float_speed_primary + self.phase_x_primary) * self.amplitude_x_primary
+        primary_y = math.cos(self.float_time * self.float_speed_primary + self.phase_y_primary) * self.amplitude_y_primary
+        
+        # Secondary wave (adds complexity)
+        secondary_x = math.sin(self.float_time * self.float_speed_secondary + self.phase_x_secondary) * self.amplitude_x_secondary
+        secondary_y = math.cos(self.float_time * self.float_speed_secondary + self.phase_y_secondary) * self.amplitude_y_secondary
+        
+        # Tertiary wave (micro movements for realism)
+        tertiary_x = math.sin(self.float_time * self.float_speed_tertiary * 3.7 + self.phase_tertiary) * self.amplitude_tertiary
+        tertiary_y = math.cos(self.float_time * self.float_speed_tertiary * 2.3 + self.phase_tertiary * 1.7) * self.amplitude_tertiary
+        
+        # Combine all waves with scaling
+        wave_force_x = (primary_x + secondary_x + tertiary_x) * 0.08
+        wave_force_y = (primary_y + secondary_y + tertiary_y) * 0.08
+        
+        # Natural drift simulation (changes direction periodically)
+        current_time = time.time()
+        if current_time - self.last_drift_change > self.drift_change_time:
+            self.drift_direction += random.uniform(-0.5, 0.5)
+            self.drift_speed = random.uniform(0.1, 0.3)
+            self.drift_change_time = random.uniform(5.0, 15.0)
+            self.last_drift_change = current_time
+        
+        drift_force_x = math.cos(self.drift_direction) * self.drift_speed * 0.05
+        drift_force_y = math.sin(self.drift_direction) * self.drift_speed * 0.05
+        
+        # Surface tension effect (bubbles naturally try to minimize surface area)
+        tension_force_x = -vx * self.surface_tension * 0.01
+        tension_force_y = -vy * self.surface_tension * 0.01
+        
+        # Air resistance (very subtle)
+        air_resistance_x = -vx * self.air_resistance
+        air_resistance_y = -vy * self.air_resistance
+        
+        # Enhanced soft boundary forces with smooth transitions
+        boundary_force_x = 0
+        boundary_force_y = 0
+        boundary_zone = self.radius * 4.0  # Larger zone for smoother transitions
+        force_strength = 1.2
+        
+        # Horizontal boundaries with smooth curves
+        if x < self.bounds.left + boundary_zone:
+            distance_ratio = (x - self.bounds.left) / boundary_zone
+            # Smooth curve: stronger force closer to boundary
+            push_factor = 1.0 - (distance_ratio * distance_ratio)
+            boundary_force_x = push_factor * force_strength
+        elif x > self.bounds.right - boundary_zone:
+            distance_ratio = (self.bounds.right - x) / boundary_zone
+            push_factor = 1.0 - (distance_ratio * distance_ratio)
+            boundary_force_x = -push_factor * force_strength
             
-            market_cap_normalized = max(1e6, min(self.market_cap, 1e12))
-            size_factor = math.sqrt(market_cap_normalized / 1e9)
+        # Vertical boundaries with smooth curves
+        if y < self.bounds.top + boundary_zone:
+            distance_ratio = (y - self.bounds.top) / boundary_zone
+            push_factor = 1.0 - (distance_ratio * distance_ratio)
+            boundary_force_y = push_factor * force_strength
+        elif y > self.bounds.bottom - boundary_zone:
+            distance_ratio = (self.bounds.bottom - y) / boundary_zone
+            push_factor = 1.0 - (distance_ratio * distance_ratio)
+            boundary_force_y = -push_factor * force_strength
+        
+        # Apply enhanced velocity smoothing
+        self.body.velocity = (vx * self.velocity_smoothing, vy * self.velocity_smoothing)
+        
+        # Combine all forces for natural floating motion
+        total_force_x = (wave_force_x + drift_force_x + tension_force_x + 
+                        air_resistance_x + boundary_force_x)
+        total_force_y = (wave_force_y + drift_force_y + tension_force_y + 
+                        air_resistance_y + boundary_force_y)
+        
+        # Apply combined forces
+        self.body.apply_force_at_local_point((total_force_x, total_force_y), (0, 0))
+        
+        # Ultra-smooth boundary correction
+        corrected = False
+        new_x, new_y = x, y
+        new_vx, new_vy = vx, vy
+        
+        # Gentle boundary bounce with surface tension
+        if x < self.bounds.left:
+            new_x = self.bounds.left
+            new_vx = abs(vx) * 0.3  # Gentle bounce back
+            corrected = True
+        elif x > self.bounds.right:
+            new_x = self.bounds.right
+            new_vx = -abs(vx) * 0.3
+            corrected = True
             
-            min_radius = 20
-            max_radius = 50
-            new_radius = min_radius + (max_radius - min_radius) * min(1.0, size_factor / 5.0)
-            
-            if abs(new_radius - self.radius) > 3:
-                old_radius = self.radius
-                self.radius = new_radius
-                self.area = math.pi * self.radius * self.radius
-                self.calculate_scaling_factors()
-                
-                # Update physics shape
-                space = self.shape.space
-                if space:
-                    space.remove(self.shape)
-                    self.shape = pymunk.Circle(self.body, self.radius)
-                    self.shape.elasticity = PHYSICS['bubble_elasticity']
-                    self.shape.friction = PHYSICS['bubble_friction']
-                    space.add(self.shape)
+        if y < self.bounds.top:
+            new_y = self.bounds.top
+            new_vy = abs(vy) * 0.3
+            corrected = True
+        elif y > self.bounds.bottom:
+            new_y = self.bounds.bottom
+            new_vy = -abs(vy) * 0.3
+            corrected = True
+        
+        if corrected:
+            self.body.position = (new_x, new_y)
+            self.body.velocity = (new_vx, new_vy)
 
     def update_data(self, new_coin_data):
-        """Update bubble with new market data (ORIGINAL)"""
+        """Update bubble with new market data"""
         new_price_change = new_coin_data.get('price_change_percentage_24h', 0.0) or 0.0
         
         # Create floating effect for changes
@@ -188,100 +294,14 @@ class FloatingBubble:
         self.price_change = new_price_change
         self.market_cap = new_coin_data.get('market_cap', self.market_cap) or self.market_cap
 
-    def apply_boundary_forces(self):
-        """MELHORADA: Forças de flutuação mais suaves e naturais"""
-        x, y = self.body.position
-        vx, vy = self.body.velocity
-        
-        # Apply velocity limiting (ORIGINAL)
-        speed = math.sqrt(vx*vx + vy*vy)
-        if speed > self.max_velocity:
-            scale = self.max_velocity / speed
-            vx *= scale
-            vy *= scale
-            self.body.velocity = (vx, vy)
-        
-        # MELHORADA: Movimento de flutuação mais suave e fluido
-        current_time = time.time()
-        
-        # Movimento primário mais suave
-        float_force_x = math.sin(current_time * self.float_speed_x + self.float_offset_x) * self.float_amplitude_x * 0.08
-        float_force_y = math.cos(current_time * self.float_speed_y + self.float_offset_y) * self.float_amplitude_y * 0.1
-        
-        # Movimento secundário para mais naturalidade
-        drift_force_x = math.cos(current_time * self.drift_speed + self.drift_offset) * self.drift_amplitude * 0.05
-        drift_force_y = math.sin(current_time * self.drift_speed + self.drift_offset * 1.3) * self.drift_amplitude * 0.06
-        
-        # Movimento terciário muito sutil para quebrar padrões
-        micro_force_x = math.sin(current_time * 2.1 + self.float_offset_x * 0.7) * 0.02
-        micro_force_y = math.cos(current_time * 1.8 + self.float_offset_y * 0.8) * 0.025
-        
-        # Soft boundary forces (MELHORADAS)
-        boundary_force_x = 0
-        boundary_force_y = 0
-        force_strength = 1.0  # Aumentado para melhor controle
-        boundary_zone = self.radius * 3.5  # Zona maior para transições mais suaves
-        
-        # Horizontal boundaries com curvas suaves
-        if x < self.bounds.left + boundary_zone:
-            push_factor = 1.0 - (x - self.bounds.left) / boundary_zone
-            # Curva suave para transição natural
-            boundary_force_x = push_factor * push_factor * force_strength
-        elif x > self.bounds.right - boundary_zone:
-            push_factor = 1.0 - (self.bounds.right - x) / boundary_zone
-            boundary_force_x = -push_factor * push_factor * force_strength
-            
-        # Vertical boundaries com curvas suaves
-        if y < self.bounds.top + boundary_zone:
-            push_factor = 1.0 - (y - self.bounds.top) / boundary_zone
-            boundary_force_y = push_factor * push_factor * force_strength
-        elif y > self.bounds.bottom - boundary_zone:
-            push_factor = 1.0 - (self.bounds.bottom - y) / boundary_zone
-            boundary_force_y = -push_factor * push_factor * force_strength
-        
-        # Apply enhanced velocity damping (MELHORADO)
-        self.body.velocity = (vx * self.velocity_damping, vy * self.velocity_damping)
-        
-        # Combine all forces for fluid motion
-        total_force_x = float_force_x + drift_force_x + micro_force_x + boundary_force_x
-        total_force_y = float_force_y + drift_force_y + micro_force_y + boundary_force_y
-        
-        self.body.apply_force_at_local_point((total_force_x, total_force_y), (0, 0))
-        
-        # Hard boundary correction (MELHORADO para ser mais suave)
-        corrected = False
-        new_x, new_y = x, y
-        new_vx, new_vy = vx, vy
-        
-        if x < self.bounds.left:
-            new_x = self.bounds.left
-            new_vx = max(0, vx * 0.4)  # Bounce mais suave
-            corrected = True
-        elif x > self.bounds.right:
-            new_x = self.bounds.right
-            new_vx = min(0, vx * 0.4)
-            corrected = True
-            
-        if y < self.bounds.top:
-            new_y = self.bounds.top
-            new_vy = max(0, vy * 0.4)
-            corrected = True
-        elif y > self.bounds.bottom:
-            new_y = self.bounds.bottom
-            new_vy = min(0, vy * 0.4)
-            corrected = True
-        
-        if corrected:
-            self.body.position = (new_x, new_y)
-            self.body.velocity = (new_vx, new_vy)
-
     def update(self, bounds):
-        """Update bubble physics and effects (ORIGINAL)"""
+        """Update bubble physics and effects"""
         # Update bounds if they changed
         if bounds != self.bounds:
             self.update_bounds(bounds)
         
-        self.apply_boundary_forces()
+        # Apply enhanced floating forces
+        self.apply_enhanced_floating_forces()
         
         # Update effects
         self.effects = [effect for effect in self.effects if effect.is_alive()]
@@ -289,44 +309,65 @@ class FloatingBubble:
             effect.update()
 
     def check_click(self, mouse_pos):
-        """Check if the bubble was clicked (ORIGINAL)"""
+        """Check if the bubble was clicked"""
         x, y = self.body.position
         distance = math.sqrt((mouse_pos[0] - x) ** 2 + (mouse_pos[1] - y) ** 2)
         return distance <= self.radius
 
     def get_coin_id(self):
-        """Get the coin ID for API calls (ORIGINAL)"""
+        """Get the coin ID for API calls"""
         return SYMBOL_TO_ID.get(self.symbol, self.symbol.lower())
 
     def draw(self, surface):
-        """Draw bubble with ORIGINAL design and improved smoothness"""
+        """Draw bubble with enhanced visual effects"""
         x, y = int(self.body.position.x), int(self.body.position.y)
         
-        # Determine colors (ORIGINAL)
+        # Determine colors
         is_negative = self.price_change < 0
         edge_color = COLORS['negative'] if is_negative else COLORS['positive']
         
-        # Create gradient surface (ORIGINAL design)
-        circle_surf = pygame.Surface((int(self.radius * 2), int(self.radius * 2)), pygame.SRCALPHA)
-        center_pos = (int(self.radius), int(self.radius))
+        # Enhanced gradient surface with soap bubble effect
+        circle_surf = pygame.Surface((int(self.radius * 2.2), int(self.radius * 2.2)), pygame.SRCALPHA)
+        center_pos = (int(self.radius * 1.1), int(self.radius * 1.1))
         
-        # Create radial gradient (ORIGINAL)
-        fill_limit = int(self.radius * 0.4)
-        
-        for r in range(int(self.radius), fill_limit, -1):
-            alpha_factor = (r - fill_limit) / (self.radius - fill_limit)
-            alpha = int(160 * alpha_factor)
+        # Create multi-layer radial gradient for soap bubble effect
+        for i, layer_radius in enumerate(range(int(self.radius), int(self.radius * 0.3), -2)):
+            if layer_radius <= 0:
+                break
+                
+            # Calculate alpha for gradient
+            alpha_factor = (layer_radius - self.radius * 0.3) / (self.radius * 0.7)
+            alpha = int(180 * alpha_factor * alpha_factor)  # Quadratic falloff
             
-            color_with_alpha = (*edge_color, alpha)
-            pygame.draw.circle(circle_surf, color_with_alpha, center_pos, r)
+            # Add slight iridescent effect
+            hue_shift = int(20 * math.sin(self.float_time * 0.5 + i * 0.3))
+            shifted_color = (
+                min(255, max(0, edge_color[0] + hue_shift)),
+                min(255, max(0, edge_color[1] + hue_shift // 2)),
+                min(255, max(0, edge_color[2] - hue_shift // 3))
+            )
+            
+            color_with_alpha = (*shifted_color, alpha)
+            pygame.draw.circle(circle_surf, color_with_alpha, center_pos, layer_radius)
         
-        # Blit the gradient circle (ORIGINAL)
-        surface.blit(circle_surf, (x - int(self.radius), y - int(self.radius)))
+        # Add subtle highlight for soap bubble effect
+        highlight_radius = int(self.radius * 0.7)
+        highlight_offset_x = int(self.radius * 0.2)
+        highlight_offset_y = int(self.radius * 0.2)
+        highlight_pos = (center_pos[0] - highlight_offset_x, center_pos[1] - highlight_offset_y)
         
-        # Content layout (ORIGINAL)
+        for i in range(highlight_radius, highlight_radius // 3, -1):
+            alpha = int(80 * (1 - (highlight_radius - i) / (highlight_radius * 0.7)))
+            highlight_color = (255, 255, 255, alpha)
+            pygame.draw.circle(circle_surf, highlight_color, highlight_pos, i)
+        
+        # Blit the enhanced gradient circle
+        surface.blit(circle_surf, (x - int(self.radius * 1.1), y - int(self.radius * 1.1)))
+        
+        # Content layout (same as original but with enhanced positioning)
         content_y_start = y + int(self.logo_y_offset)
         
-        # Draw logo (ORIGINAL)
+        # Draw logo
         if self.logo_surface:
             logo_rect = self.logo_surface.get_rect(center=(x, content_y_start))
             surface.blit(self.logo_surface, logo_rect)
@@ -334,11 +375,11 @@ class FloatingBubble:
         else:
             next_y = content_y_start + self.symbol_spacing
         
-        # Symbol text (ORIGINAL)
+        # Symbol text
         symbol_font = pygame.font.SysFont("Arial", self.symbol_font_size, bold=True)
         text_color = COLORS['text_primary']
         
-        # Smart symbol truncation (ORIGINAL)
+        # Smart symbol truncation
         display_symbol = self.symbol
         symbol_width = symbol_font.size(self.symbol)[0]
         max_text_width = int(self.radius * 2 * self.text_boundary_factor)
@@ -353,24 +394,24 @@ class FloatingBubble:
         symbol_text = symbol_font.render(display_symbol, True, text_color)
         symbol_rect = symbol_text.get_rect(center=(x, next_y))
         
-        # Ensure symbol stays within bounds (ORIGINAL)
+        # Ensure symbol stays within bounds
         max_symbol_y = y + int(self.radius * self.text_boundary_factor)
         if symbol_rect.bottom > max_symbol_y:
             symbol_rect.centery = max_symbol_y - symbol_text.get_height() // 2
         
         surface.blit(symbol_text, symbol_rect)
         
-        # Percentage text (ORIGINAL)
+        # Percentage text
         pct_font = pygame.font.SysFont("Arial", self.pct_font_size, bold=True)
         pct_color = COLORS['positive'] if not is_negative else COLORS['negative']
         
-        # Format percentage (ORIGINAL)
+        # Format percentage
         if self.area < 2000:
             pct_str = f"{self.price_change:+.1f}%"
         else:
             pct_str = f"{self.price_change:+.2f}%"
         
-        # Check if percentage text fits (ORIGINAL)
+        # Check if percentage text fits
         pct_text = pct_font.render(pct_str, True, pct_color)
         pct_width = pct_text.get_width()
         
@@ -378,10 +419,10 @@ class FloatingBubble:
             pct_str = f"{int(self.price_change):+d}%"
             pct_text = pct_font.render(pct_str, True, pct_color)
         
-        # Position percentage (ORIGINAL)
+        # Position percentage
         pct_y = symbol_rect.bottom + self.pct_spacing
         
-        # Final boundary check (ORIGINAL)
+        # Final boundary check
         max_pct_y = y + int(self.radius * self.text_boundary_factor)
         if pct_y + pct_text.get_height() // 2 > max_pct_y:
             pct_y = max_pct_y - pct_text.get_height() // 2
@@ -389,6 +430,9 @@ class FloatingBubble:
         pct_rect = pct_text.get_rect(center=(x, pct_y))
         surface.blit(pct_text, pct_rect)
         
-        # Draw floating effects (ORIGINAL)
+        # Draw floating effects
         for effect in self.effects:
             effect.draw(surface)
+
+# Backward compatibility alias
+FloatingBubble = EnhancedFloatingBubble

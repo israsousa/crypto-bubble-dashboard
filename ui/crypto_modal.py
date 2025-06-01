@@ -1,6 +1,6 @@
 """
-Professional Crypto Modal - Clean Design
-Removed background animations, improved structure and functionality
+Professional Crypto Modal with Working Click Handlers
+Clean, elegant design focused on functionality and user experience
 """
 
 import pygame
@@ -17,72 +17,76 @@ from utils.formatters import format_large_number, format_supply, format_price
 from data.chart_data import HistoricalDataGenerator
 
 class ProfessionalTooltip:
-    """Clean, professional tooltip without animations"""
+    """Professional tooltip with smooth animations"""
     
     def __init__(self):
         self.visible = False
         self.position = (0, 0)
         self.data = {}
-        self.fade_alpha = 0
-        self.target_alpha = 0
+        self.animation_progress = 0
+        self.target_progress = 0
         
     def show(self, pos: Tuple[int, int], data: Dict[str, Any]):
-        """Show tooltip instantly"""
+        """Show tooltip with investment data"""
         self.position = pos
         self.data = data
         self.visible = True
-        self.target_alpha = 255
+        self.target_progress = 1.0
         
     def hide(self):
-        """Hide tooltip instantly"""
-        self.target_alpha = 0
+        """Hide tooltip smoothly"""
+        self.target_progress = 0.0
         
     def update(self, dt: float):
-        """Simple fade update"""
-        if self.target_alpha > self.fade_alpha:
-            self.fade_alpha = min(255, self.fade_alpha + 1200 * dt)
+        """Update tooltip animation"""
+        if self.target_progress > self.animation_progress:
+            self.animation_progress = min(1.0, self.animation_progress + dt * 12)
         else:
-            self.fade_alpha = max(0, self.fade_alpha - 1200 * dt)
+            self.animation_progress = max(0.0, self.animation_progress - dt * 12)
             
-        if self.fade_alpha <= 0:
+        if self.animation_progress <= 0:
             self.visible = False
             
     def render(self, surface: pygame.Surface):
-        """Render clean tooltip"""
-        if not self.visible or self.fade_alpha <= 0:
+        """Render professional tooltip"""
+        if not self.visible or self.animation_progress <= 0:
             return
             
         # Professional fonts
+        header_font = pygame.font.SysFont("Segoe UI", 11, bold=True)
         value_font = pygame.font.SysFont("Segoe UI", 13, bold=True)
-        label_font = pygame.font.SysFont("Segoe UI", 10)
+        label_font = pygame.font.SysFont("Segoe UI", 9)
         
-        # Prepare data
+        # Prepare data lines
         lines = []
         if 'price' in self.data:
-            lines.append(("Price", format_price(self.data['price']), (120, 200, 255)))
+            lines.append(("PRICE", format_price(self.data['price']), (100, 255, 180)))
+            
         if 'time' in self.data:
-            lines.append(("Time", self.data['time'], (180, 180, 180)))
+            lines.append(("TIME", self.data['time'], (180, 220, 255)))
+            
         if 'volume' in self.data:
-            lines.append(("Volume", format_large_number(self.data['volume']), (255, 200, 120)))
+            lines.append(("VOLUME", format_large_number(self.data['volume']), (255, 200, 120)))
+            
         if 'change' in self.data:
             change = self.data['change']
-            change_color = (80, 200, 120) if change >= 0 else (220, 80, 80)
-            lines.append(("Change", f"{change:+.2f}%", change_color))
+            change_color = (100, 255, 180) if change >= 0 else (255, 120, 120)
+            lines.append(("CHANGE", f"{change:+.2f}%", change_color))
         
         if not lines:
             return
             
         # Calculate dimensions
         padding = 12
-        line_height = 18
-        max_width = 0
+        line_spacing = 18
         
+        max_width = 0
         for label, value, color in lines:
             width = max(label_font.size(label)[0], value_font.size(value)[0])
             max_width = max(max_width, width)
             
         tooltip_width = max_width + padding * 2
-        tooltip_height = len(lines) * line_height + padding * 2
+        tooltip_height = len(lines) * line_spacing + padding * 2
         
         # Position adjustment
         x, y = self.position
@@ -93,42 +97,50 @@ class ProfessionalTooltip:
         if y + tooltip_height > screen_rect.bottom - 10:
             y = screen_rect.bottom - tooltip_height - 10
             
+        # Animation scale
+        scale = self.animation_progress
+        final_width = int(tooltip_width * scale)
+        final_height = int(tooltip_height * scale)
+        
+        if final_width <= 0 or final_height <= 0:
+            return
+            
         # Create tooltip surface
-        tooltip_surface = pygame.Surface((tooltip_width, tooltip_height), pygame.SRCALPHA)
+        tooltip_surface = pygame.Surface((final_width, final_height), pygame.SRCALPHA)
         
-        # Clean background
-        alpha = int(self.fade_alpha * 0.95)
-        pygame.draw.rect(tooltip_surface, (30, 35, 45, alpha), 
-                        (0, 0, tooltip_width, tooltip_height), border_radius=6)
-        pygame.draw.rect(tooltip_surface, (80, 100, 130, alpha), 
-                        (0, 0, tooltip_width, tooltip_height), 1, border_radius=6)
+        # Professional background
+        pygame.draw.rect(tooltip_surface, (20, 25, 35, 250), 
+                        (0, 0, final_width, final_height), border_radius=6)
+        pygame.draw.rect(tooltip_surface, (80, 120, 180, 200), 
+                        (0, 0, final_width, final_height), 2, border_radius=6)
         
-        # Render text
-        text_alpha = int(self.fade_alpha)
-        current_y = padding
-        
-        for label, value, color in lines:
-            # Label
-            label_surface = label_font.render(label, True, (160, 170, 180))
-            label_surface.set_alpha(text_alpha)
-            tooltip_surface.blit(label_surface, (padding, current_y))
+        # Render content if large enough
+        if scale > 0.4:
+            text_alpha = int(255 * min(1.0, (scale - 0.4) / 0.6))
+            current_y = padding
             
-            # Value
-            value_surface = value_font.render(value, True, color)
-            value_surface.set_alpha(text_alpha)
-            tooltip_surface.blit(value_surface, (padding, current_y + 9))
-            
-            current_y += line_height
-            
+            for label, value, color in lines:
+                # Label
+                label_surface = label_font.render(label, True, (160, 180, 200))
+                label_surface.set_alpha(text_alpha)
+                tooltip_surface.blit(label_surface, (padding, current_y))
+                
+                # Value
+                value_surface = value_font.render(value, True, color)
+                value_surface.set_alpha(text_alpha)
+                tooltip_surface.blit(value_surface, (padding, current_y + 10))
+                
+                current_y += line_spacing
+                
         surface.blit(tooltip_surface, (x, y))
 
-class CleanChartRenderer:
-    """Clean chart renderer without background animations"""
+class ProfessionalChartRenderer:
+    """Financial-grade chart renderer with smooth interactions"""
     
     def __init__(self, width: int, height: int):
         self.width = width
         self.height = height
-        self.margin = 50
+        self.margin = 40
         self.chart_rect = pygame.Rect(
             self.margin, self.margin,
             width - 2 * self.margin, height - 2 * self.margin
@@ -138,21 +150,20 @@ class CleanChartRenderer:
         self.mouse_pos = (0, 0)
         self.hovered_point_index = None
         
-        # Clean professional colors
+        # Professional colors
         self.primary_color = (80, 120, 180)
-        self.positive_color = (80, 180, 120)
-        self.negative_color = (200, 80, 80)
-        self.grid_color = (50, 60, 75)
+        self.positive_color = (80, 200, 120)
+        self.negative_color = (220, 80, 80)
+        self.grid_color = (40, 50, 65)
         self.text_color = (180, 190, 210)
-        self.background_color = (20, 25, 35)
         
     def update(self, dt: float, mouse_pos: Tuple[int, int]):
-        """Update interactions"""
+        """Update chart interactions"""
         self.mouse_pos = mouse_pos
         self.tooltip.update(dt)
         
     def get_trend_color(self, change_percent: float) -> Tuple[int, int, int]:
-        """Get color based on trend"""
+        """Get color based on price trend"""
         if change_percent > 0:
             return self.positive_color
         elif change_percent < 0:
@@ -162,14 +173,12 @@ class CleanChartRenderer:
             
     def render_price_chart(self, data_points: List[Dict], symbol: str, 
                           timeframe_label: str) -> pygame.Surface:
-        """Render clean professional chart"""
+        """Render professional price chart with enhanced interactions"""
         if not data_points or len(data_points) < 2:
             return self.render_no_data_chart()
             
         surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-        
-        # Clean background
-        surface.fill(self.background_color)
+        surface.fill((15, 20, 28))
         
         # Process data
         prices = [point['price'] for point in data_points]
@@ -193,32 +202,32 @@ class CleanChartRenderer:
             chart_points.append((int(x), int(y)))
             
         # Render components
-        self.render_clean_grid(surface)
-        self.render_area_fill(surface, chart_points, line_color)
-        self.render_price_line(surface, chart_points, line_color)
-        self.render_data_points(surface, chart_points, data_points, line_color)
-        self.render_axes(surface, min_price, max_price, timestamps)
-        self.render_title(surface, symbol, timeframe_label, change_percent)
+        self.render_professional_grid(surface)
+        self.render_smooth_area_fill(surface, chart_points, line_color)
+        self.render_smooth_line(surface, chart_points, line_color)
+        self.render_interactive_points(surface, chart_points, data_points, line_color)
+        self.render_professional_axes(surface, min_price, max_price, timestamps)
+        self.render_professional_title(surface, symbol, timeframe_label, change_percent)
         
         return surface
         
-    def render_clean_grid(self, surface: pygame.Surface):
-        """Render clean grid lines"""
+    def render_professional_grid(self, surface: pygame.Surface):
+        """Render clean professional grid"""
         # Vertical lines
-        for i in range(1, 7):
-            x = self.chart_rect.left + (i / 7) * self.chart_rect.width
+        for i in range(1, 6):
+            x = self.chart_rect.left + (i / 6) * self.chart_rect.width
             pygame.draw.line(surface, self.grid_color, 
                            (x, self.chart_rect.top), (x, self.chart_rect.bottom), 1)
                            
         # Horizontal lines
-        for i in range(1, 6):
-            y = self.chart_rect.top + (i / 6) * self.chart_rect.height
+        for i in range(1, 5):
+            y = self.chart_rect.top + (i / 5) * self.chart_rect.height
             pygame.draw.line(surface, self.grid_color, 
                            (self.chart_rect.left, y), (self.chart_rect.right, y), 1)
                            
-    def render_area_fill(self, surface: pygame.Surface, points: List[Tuple[int, int]], 
-                        color: Tuple[int, int, int]):
-        """Render clean area fill"""
+    def render_smooth_area_fill(self, surface: pygame.Surface, points: List[Tuple[int, int]], 
+                               color: Tuple[int, int, int]):
+        """Render smooth filled area under chart"""
         if len(points) < 2:
             return
             
@@ -227,30 +236,45 @@ class CleanChartRenderer:
         fill_points.append((points[-1][0], self.chart_rect.bottom))
         fill_points.append((points[0][0], self.chart_rect.bottom))
         
-        # Single clean fill
+        # Create gradient fill
         fill_surface = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
-        fill_color = (*color, 40)
-        pygame.draw.polygon(fill_surface, fill_color, fill_points)
+        
+        # Multi-layer gradient for smoothness
+        for i in range(15):
+            alpha = int(50 * (1 - i / 15))
+            if alpha > 0:
+                gradient_color = (*color, alpha)
+                pygame.draw.polygon(fill_surface, gradient_color, fill_points)
+                
         surface.blit(fill_surface, (0, 0))
         
-    def render_price_line(self, surface: pygame.Surface, points: List[Tuple[int, int]], 
-                         color: Tuple[int, int, int]):
-        """Render clean price line"""
+    def render_smooth_line(self, surface: pygame.Surface, points: List[Tuple[int, int]], 
+                          color: Tuple[int, int, int]):
+        """Render smooth chart line with anti-aliasing effect"""
         if len(points) < 2:
             return
             
-        # Clean main line
-        pygame.draw.lines(surface, color, False, points, 2)
-        
-    def render_data_points(self, surface: pygame.Surface, chart_points: List[Tuple[int, int]], 
-                          data_points: List[Dict], color: Tuple[int, int, int]):
-        """Render interactive data points"""
+        # Main line with glow effect for smoothness
+        for thickness in [4, 2, 1]:
+            alpha = 255 if thickness == 1 else 80
+            line_color = (*color, alpha) if thickness > 1 else color
+            
+            if thickness > 1:
+                line_surface = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
+                pygame.draw.lines(line_surface, line_color, False, points, thickness)
+                surface.blit(line_surface, (0, 0))
+            else:
+                pygame.draw.lines(surface, line_color, False, points, thickness)
+                
+    def render_interactive_points(self, surface: pygame.Surface, chart_points: List[Tuple[int, int]], 
+                                 data_points: List[Dict], color: Tuple[int, int, int]):
+        """Render interactive data points with professional hover effects"""
         mouse_x, mouse_y = self.mouse_pos
-        hover_radius = 20
+        hover_radius = 25
         closest_point = None
         closest_distance = float('inf')
         
-        # Find closest point
+        # Find closest point to mouse for hover effect
         for i, (point, data) in enumerate(zip(chart_points, data_points)):
             x, y = point
             distance = math.sqrt((mouse_x - x) ** 2 + (mouse_y - y) ** 2)
@@ -261,29 +285,35 @@ class CleanChartRenderer:
                 
         self.hovered_point_index = closest_point[0] if closest_point else None
         
-        # Render hover crosshair
+        # Render crosshair and highlight for hovered point
         if closest_point:
             point_x, point_y = closest_point[1]
             
-            # Clean crosshair
-            crosshair_color = (120, 150, 200)
-            pygame.draw.line(surface, crosshair_color, 
+            # Professional crosshair lines
+            crosshair_color = (120, 150, 200, 150)
+            crosshair_surface = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
+            pygame.draw.line(crosshair_surface, crosshair_color, 
                            (self.chart_rect.left, point_y), (self.chart_rect.right, point_y), 1)
-            pygame.draw.line(surface, crosshair_color, 
+            pygame.draw.line(crosshair_surface, crosshair_color, 
                            (point_x, self.chart_rect.top), (point_x, self.chart_rect.bottom), 1)
+            surface.blit(crosshair_surface, (0, 0))
             
-            # Highlight point
-            pygame.draw.circle(surface, (255, 255, 255), (point_x, point_y), 5)
-            pygame.draw.circle(surface, color, (point_x, point_y), 3)
+            # Highlight point with glow effect
+            for radius in [8, 6, 4]:
+                alpha = 255 if radius == 4 else 100
+                point_color = (255, 255, 255, alpha) if radius > 4 else color
+                point_surface = pygame.Surface((radius*2, radius*2), pygame.SRCALPHA)
+                pygame.draw.circle(point_surface, point_color, (radius, radius), radius)
+                surface.blit(point_surface, (point_x - radius, point_y - radius))
             
-            # Show tooltip
+            # Show professional tooltip
             tooltip_data = {
                 'price': closest_point[2]['price'],
                 'time': closest_point[2]['timestamp'].strftime("%H:%M"),
                 'volume': closest_point[2].get('volume', 0)
             }
             
-            # Calculate change if not first point
+            # Calculate price change if not first point
             if closest_point[0] > 0:
                 prev_price = data_points[closest_point[0] - 1]['price']
                 current_price = closest_point[2]['price']
@@ -294,45 +324,46 @@ class CleanChartRenderer:
         else:
             self.tooltip.hide()
             
-        # Render subtle data points
+        # Render subtle data points along the line
         point_spacing = max(1, len(chart_points) // 25)
         for i in range(0, len(chart_points), point_spacing):
             x, y = chart_points[i]
             if i == self.hovered_point_index:
-                continue
+                continue  # Skip hovered point (already rendered)
                 
-            pygame.draw.circle(surface, (200, 200, 200), (x, y), 2)
+            # Small indicator points
+            pygame.draw.circle(surface, (255, 255, 255, 200), (x, y), 2)
             
-    def render_axes(self, surface: pygame.Surface, min_price: float, 
-                   max_price: float, timestamps: List):
-        """Render clean axis labels"""
+    def render_professional_axes(self, surface: pygame.Surface, min_price: float, 
+                                max_price: float, timestamps: List):
+        """Render professional axis labels"""
         font = pygame.font.SysFont("Segoe UI", 9)
         
-        # Y-axis labels
+        # Y-axis (price) labels
         for i in range(6):
             price = min_price + (i / 5) * (max_price - min_price)
             y = self.chart_rect.bottom - (i / 5) * self.chart_rect.height
             
             price_text = format_price(price)
             text_surface = font.render(price_text, True, self.text_color)
-            surface.blit(text_surface, (8, y - text_surface.get_height() // 2))
+            surface.blit(text_surface, (5, y - text_surface.get_height() // 2))
             
-        # X-axis labels
+        # X-axis (time) labels
         if timestamps:
-            for i in range(6):
+            for i in range(5):
                 if i < len(timestamps):
-                    timestamp_index = int(i * (len(timestamps) - 1) / 5)
+                    timestamp_index = int(i * (len(timestamps) - 1) / 4)
                     timestamp = timestamps[timestamp_index]
-                    x = self.chart_rect.left + (i / 5) * self.chart_rect.width
+                    x = self.chart_rect.left + (i / 4) * self.chart_rect.width
                     
                     time_text = timestamp.strftime("%H:%M")
                     text_surface = font.render(time_text, True, self.text_color)
                     surface.blit(text_surface, (x - text_surface.get_width() // 2, 
                                                self.chart_rect.bottom + 8))
                                                
-    def render_title(self, surface: pygame.Surface, symbol: str, 
-                    timeframe_label: str, change_percent: float):
-        """Render clean title"""
+    def render_professional_title(self, surface: pygame.Surface, symbol: str, 
+                                 timeframe_label: str, change_percent: float):
+        """Render professional chart title"""
         title_font = pygame.font.SysFont("Segoe UI", 16, bold=True)
         subtitle_font = pygame.font.SysFont("Segoe UI", 12)
         
@@ -347,15 +378,15 @@ class CleanChartRenderer:
         
         # Position
         title_x = self.chart_rect.left
-        title_y = 12
+        title_y = 8
         
         surface.blit(title_surface, (title_x, title_y))
         surface.blit(change_surface, (title_x + title_surface.get_width() + 15, title_y + 2))
         
     def render_no_data_chart(self) -> pygame.Surface:
-        """Render no-data state"""
+        """Render professional no-data state"""
         surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-        surface.fill(self.background_color)
+        surface.fill((15, 20, 28))
         
         font = pygame.font.SysFont("Segoe UI", 16)
         text = "Loading chart data..."
@@ -368,29 +399,41 @@ class CleanChartRenderer:
         return surface
         
     def handle_mouse_move(self, pos: Tuple[int, int]):
-        """Handle mouse movement"""
+        """Handle mouse movement for interactions"""
         self.mouse_pos = pos
         
     def render_tooltip(self, surface: pygame.Surface):
-        """Render tooltip"""
+        """Render tooltip if visible"""
         self.tooltip.render(surface)
 
-class CleanButton:
-    """Clean, modern button design"""
+class ProfessionalButton:
+    """Professional button with working click detection"""
     
     def __init__(self, rect: pygame.Rect, text: str, active: bool = False):
         self.rect = rect
         self.text = text
         self.active = active
         self.hover = False
+        self.click_time = 0
         
     def update(self, dt: float, mouse_pos: tuple):
         """Update button state"""
         self.hover = self.rect.collidepoint(mouse_pos)
         
+        # Reset click animation
+        if self.click_time > 0:
+            self.click_time = max(0, self.click_time - dt)
+        
+    def handle_click(self, mouse_pos: tuple) -> bool:
+        """Handle click detection - FIXED"""
+        if self.rect.collidepoint(mouse_pos):
+            self.click_time = 0.2  # Click animation duration
+            return True
+        return False
+        
     def render(self, surface: pygame.Surface):
-        """Render clean button"""
-        # Colors
+        """Render professional button"""
+        # Background colors
         if self.active:
             bg_color = (80, 120, 180)
             text_color = (255, 255, 255)
@@ -401,10 +444,15 @@ class CleanButton:
             border_color = (80, 100, 130)
         else:
             bg_color = (35, 42, 55)
-            text_color = (160, 170, 190)
+            text_color = (160, 180, 200)
             border_color = (60, 70, 85)
             
-        # Background
+        # Click animation effect
+        if self.click_time > 0:
+            intensity = int(40 * (self.click_time / 0.2))
+            bg_color = tuple(min(255, c + intensity) for c in bg_color)
+            
+        # Render button
         pygame.draw.rect(surface, bg_color, self.rect, border_radius=4)
         pygame.draw.rect(surface, border_color, self.rect, 1, border_radius=4)
         
@@ -414,8 +462,8 @@ class CleanButton:
         text_rect = text_surface.get_rect(center=self.rect.center)
         surface.blit(text_surface, text_rect)
 
-class CleanCryptoModal:
-    """Clean professional crypto modal"""
+class ProfessionalCryptoModal:
+    """Professional crypto modal with working interactions"""
     
     def __init__(self, coin_data: dict, screen_size: tuple):
         self.coin_data = coin_data
@@ -430,9 +478,9 @@ class CleanCryptoModal:
         self.y = (screen_size[1] - self.height) // 2
         
         # Chart system
-        chart_width = self.width - 300
-        chart_height = self.height - 160
-        self.chart_renderer = CleanChartRenderer(chart_width, chart_height)
+        chart_width = self.width - 320
+        chart_height = self.height - 180
+        self.chart_renderer = ProfessionalChartRenderer(chart_width, chart_height)
         
         # Data generation
         self.data_generator = HistoricalDataGenerator()
@@ -441,7 +489,7 @@ class CleanCryptoModal:
         self.selected_timeframe = "7d"
         self.chart_surface = None
         self.loading_chart = False
-        self.entrance_scale = 0
+        self.entrance_animation = 0
         
         # Timeframes
         self.timeframes = {
@@ -459,136 +507,149 @@ class CleanCryptoModal:
         self.mouse_pos = (0, 0)
         self.close_button_rect = None
         
-        print(f"Clean modal created for {self.symbol}")
+        print(f"Professional modal created for {self.symbol}")
         self.generate_chart()
         
     def create_buttons(self):
-        """Create clean timeframe buttons"""
-        button_width = 45
-        button_height = 28
+        """Create professional timeframe buttons with proper positioning"""
+        button_width = 50
+        button_height = 30
         button_spacing = 8
         
-        start_x = 50
-        start_y = 85
+        start_x = 40
+        start_y = 90
         
         for i, (key, info) in enumerate(self.timeframes.items()):
             button_x = start_x + i * (button_width + button_spacing)
             button_rect = pygame.Rect(button_x, start_y, button_width, button_height)
             
             is_active = (key == self.selected_timeframe)
-            self.buttons[key] = CleanButton(button_rect, info['label'], is_active)
+            self.buttons[key] = ProfessionalButton(button_rect, info['label'], is_active)
             
     def generate_chart(self):
-        """Generate clean chart"""
+        """Generate professional chart for selected timeframe"""
         try:
             self.loading_chart = True
             
             timeframe_info = self.timeframes[self.selected_timeframe]
             current_price = self.coin_data.get('current_price', 1.0)
             
-            # Generate data
+            # Generate realistic data
             data_points = self.data_generator.generate_realistic_data(
                 current_price, self.symbol, timeframe_info['days']
             )
             
-            # Render chart
+            # Render professional chart
             self.chart_surface = self.chart_renderer.render_price_chart(
                 data_points, self.symbol, timeframe_info['label']
             )
             
+            print(f"✅ Chart generated for {self.symbol} - {timeframe_info['label']}")
+            
         except Exception as e:
-            print(f"Chart generation error: {e}")
+            print(f"❌ Error generating chart: {e}")
             self.chart_surface = self.chart_renderer.render_no_data_chart()
             
         self.loading_chart = False
         
     def handle_click(self, pos: tuple) -> bool:
-        """Handle clicks"""
+        """Handle modal clicks - FIXED CLICK DETECTION"""
         if not self.is_active:
             return False
             
-        # Outside modal
-        modal_rect = pygame.Rect(self.x, self.y, self.width, self.height)
-        if not modal_rect.collidepoint(pos):
+        # Convert global position to modal-relative position
+        relative_pos = (pos[0] - self.x, pos[1] - self.y)
+        
+        # Check if clicked outside modal
+        modal_rect = pygame.Rect(0, 0, self.width, self.height)
+        if not modal_rect.collidepoint(relative_pos):
             self.close()
+            print(f"❌ Modal closed - clicked outside")
             return True
             
-        # Close button
-        if self.close_button_rect and self.close_button_rect.collidepoint(pos):
+        # Close button - FIXED X BUTTON
+        if self.close_button_rect and self.close_button_rect.collidepoint(relative_pos):
             self.close()
+            print(f"❌ Modal closed - X button clicked")
             return True
             
-        # Timeframe buttons
+        # Timeframe buttons - FIXED BUTTON DETECTION
         for timeframe, button in self.buttons.items():
-            if button.rect.collidepoint(pos):
+            if button.handle_click(relative_pos):
                 if timeframe != self.selected_timeframe:
+                    print(f"🔄 Switching timeframe: {self.selected_timeframe} → {timeframe}")
                     self.selected_timeframe = timeframe
                     
-                    # Update buttons
+                    # Update button states
                     for key, btn in self.buttons.items():
                         btn.active = (key == timeframe)
-                        
+                    
+                    # Generate new chart
                     self.generate_chart()
+                else:
+                    print(f"📊 Timeframe {timeframe} already selected")
                 return True
                 
-        return True
+        return True  # Consume click within modal
         
     def handle_mouse_move(self, pos: tuple):
-        """Handle mouse movement"""
+        """Handle mouse movement for chart interactions"""
         self.mouse_pos = pos
         
-        # Chart interaction
-        chart_x = self.x + 50
-        chart_y = self.y + 120
+        # Update chart with relative mouse position
+        chart_x = self.x + 40
+        chart_y = self.y + 130
         
         relative_pos = (pos[0] - chart_x, pos[1] - chart_y)
         self.chart_renderer.handle_mouse_move(relative_pos)
         
     def open(self):
-        """Open modal"""
+        """Open modal with smooth animation"""
         self.is_active = True
-        self.entrance_scale = 0
+        self.entrance_animation = 0
+        print(f"🚀 Professional modal opened for {self.symbol}")
         
     def close(self):
         """Close modal"""
         self.is_active = False
+        print(f"❌ Professional modal closed for {self.symbol}")
         
     def update(self, dt: float):
-        """Update modal"""
+        """Update modal animations and interactions"""
         if not self.is_active:
             return
             
         # Entrance animation
-        if self.entrance_scale < 1.0:
-            self.entrance_scale = min(1.0, self.entrance_scale + dt * 8)
+        if self.entrance_animation < 1.0:
+            self.entrance_animation = min(1.0, self.entrance_animation + dt * 6)
             
-        # Update buttons
+        # Update buttons with relative mouse position
+        relative_mouse = (self.mouse_pos[0] - self.x, self.mouse_pos[1] - self.y)
         for button in self.buttons.values():
-            relative_mouse = (self.mouse_pos[0] - self.x, self.mouse_pos[1] - self.y)
             button.update(dt, relative_mouse)
             
-        # Update chart
+        # Update chart interactions
         chart_mouse = (
-            self.mouse_pos[0] - self.x - 50,
-            self.mouse_pos[1] - self.y - 120
+            self.mouse_pos[0] - self.x - 40,
+            self.mouse_pos[1] - self.y - 130
         )
         self.chart_renderer.update(dt, chart_mouse)
         
     def draw(self, surface: pygame.Surface):
-        """Draw clean modal"""
+        """Draw professional modal with all components"""
         if not self.is_active:
             return
             
-        # Clean overlay
+        # Professional overlay
         overlay = pygame.Surface(self.screen_size, pygame.SRCALPHA)
-        overlay_alpha = int(200 * self.entrance_scale)
+        overlay_alpha = int(200 * self.entrance_animation)
         overlay.fill((0, 0, 0, overlay_alpha))
         surface.blit(overlay, (0, 0))
         
         # Modal surface
         modal_surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
         
-        # Render components
+        # Render all components
         self.render_background(modal_surface)
         self.render_header(modal_surface)
         self.render_timeframe_buttons(modal_surface)
@@ -596,29 +657,38 @@ class CleanCryptoModal:
         self.render_stats_panel(modal_surface)
         self.render_close_button(modal_surface)
         
-        # Apply entrance scale
-        if self.entrance_scale < 1.0:
-            scaled_width = int(self.width * self.entrance_scale)
-            scaled_height = int(self.height * self.entrance_scale)
-            modal_surface = pygame.transform.smoothscale(modal_surface, (scaled_width, scaled_height))
+        # Apply entrance animation scaling
+        scale = self.entrance_animation
+        if scale < 1.0:
+            scaled_width = int(self.width * scale)
+            scaled_height = int(self.height * scale)
             
-            scaled_x = self.x + (self.width - scaled_width) // 2
-            scaled_y = self.y + (self.height - scaled_height) // 2
-            surface.blit(modal_surface, (scaled_x, scaled_y))
+            if scaled_width > 0 and scaled_height > 0:
+                modal_surface = pygame.transform.smoothscale(modal_surface, (scaled_width, scaled_height))
+                
+                scaled_x = self.x + (self.width - scaled_width) // 2
+                scaled_y = self.y + (self.height - scaled_height) // 2
+                surface.blit(modal_surface, (scaled_x, scaled_y))
         else:
             surface.blit(modal_surface, (self.x, self.y))
             
     def render_background(self, surface: pygame.Surface):
-        """Render clean background"""
-        # Clean background
-        pygame.draw.rect(surface, (25, 30, 40), (0, 0, self.width, self.height), 
-                        border_radius=8)
-        pygame.draw.rect(surface, (70, 85, 110), (0, 0, self.width, self.height), 
-                        2, border_radius=8)
+        """Render clean professional background"""
+        # Main background with subtle gradient effect
+        pygame.draw.rect(surface, (20, 25, 35), (0, 0, self.width, self.height), 
+                        border_radius=12)
+        
+        # Elegant border
+        pygame.draw.rect(surface, (70, 90, 120), (0, 0, self.width, self.height), 
+                        2, border_radius=12)
+                        
+        # Subtle inner highlight
+        pygame.draw.rect(surface, (35, 45, 60), (1, 1, self.width-2, self.height-2), 
+                        1, border_radius=11)
                         
     def render_header(self, surface: pygame.Surface):
-        """Render header"""
-        # Logo
+        """Render professional header with logo and price info"""
+        # Logo section
         logo_size = 40
         logo_x, logo_y = 30, 20
         
@@ -629,15 +699,17 @@ class CleanCryptoModal:
                 logo = pygame.transform.smoothscale(logo, (logo_size, logo_size))
                 surface.blit(logo, (logo_x, logo_y))
             except:
+                # Fallback logo
                 pygame.draw.circle(surface, (80, 120, 180), 
                                  (logo_x + logo_size//2, logo_y + logo_size//2), logo_size//2)
         else:
+            # Fallback logo
             pygame.draw.circle(surface, (80, 120, 180), 
                              (logo_x + logo_size//2, logo_y + logo_size//2), logo_size//2)
                              
-        # Coin info
-        name_font = pygame.font.SysFont("Segoe UI", 18, bold=True)
-        symbol_font = pygame.font.SysFont("Segoe UI", 13)
+        # Coin information
+        name_font = pygame.font.SysFont("Segoe UI", 20, bold=True)
+        symbol_font = pygame.font.SysFont("Segoe UI", 14)
         
         coin_name = self.coin_data.get('name', self.symbol)
         if len(coin_name) > 25:
@@ -646,64 +718,65 @@ class CleanCryptoModal:
         name_surface = name_font.render(coin_name, True, (220, 230, 250))
         symbol_surface = symbol_font.render(f"{self.symbol}", True, (160, 180, 210))
         
-        surface.blit(name_surface, (logo_x + logo_size + 15, logo_y + 5))
-        surface.blit(symbol_surface, (logo_x + logo_size + 15, logo_y + 25))
+        surface.blit(name_surface, (logo_x + logo_size + 15, logo_y + 2))
+        surface.blit(symbol_surface, (logo_x + logo_size + 15, logo_y + 28))
         
-        # Current price
+        # Current price section
         current_price = self.coin_data.get('current_price', 0)
         price_text = format_price(current_price)
-        price_font = pygame.font.SysFont("Segoe UI", 22, bold=True)
+        price_font = pygame.font.SysFont("Segoe UI", 24, bold=True)
         price_surface = price_font.render(price_text, True, (255, 255, 255))
         
-        price_x = self.width - price_surface.get_width() - 100
-        surface.blit(price_surface, (price_x, logo_y + 5))
+        price_x = self.width - price_surface.get_width() - 120
+        surface.blit(price_surface, (price_x, logo_y + 2))
         
         # 24h change
         change_24h = self.coin_data.get('price_change_percentage_24h', 0) or 0
-        change_color = (80, 180, 120) if change_24h >= 0 else (200, 80, 80)
+        change_color = (80, 200, 120) if change_24h >= 0 else (220, 80, 80)
         change_text = f"{change_24h:+.2f}%"
         
-        change_font = pygame.font.SysFont("Segoe UI", 14, bold=True)
+        change_font = pygame.font.SysFont("Segoe UI", 16, bold=True)
         change_surface = change_font.render(change_text, True, change_color)
-        surface.blit(change_surface, (price_x, logo_y + 30))
+        surface.blit(change_surface, (price_x, logo_y + 32))
         
     def render_timeframe_buttons(self, surface: pygame.Surface):
-        """Render timeframe buttons"""
+        """Render professional timeframe buttons"""
         for button in self.buttons.values():
             button.render(surface)
             
     def render_chart_area(self, surface: pygame.Surface):
-        """Render chart"""
-        chart_x, chart_y = 50, 120
+        """Render chart area with loading state"""
+        chart_x, chart_y = 40, 130
         
         if self.loading_chart:
             loading_surface = self.chart_renderer.render_no_data_chart()
             surface.blit(loading_surface, (chart_x, chart_y))
         elif self.chart_surface:
             surface.blit(self.chart_surface, (chart_x, chart_y))
+            # Render chart tooltip
             self.chart_renderer.render_tooltip(surface)
             
     def render_stats_panel(self, surface: pygame.Surface):
-        """Render stats panel"""
-        panel_x = self.width - 270
-        panel_y = 75
-        panel_width = 250
-        panel_height = self.height - 100
+        """Render professional statistics panel"""
+        panel_x = self.width - 280
+        panel_y = 80
+        panel_width = 260
+        panel_height = self.height - 120
         
-        # Clean panel background
-        pygame.draw.rect(surface, (30, 35, 45), 
-                        (panel_x, panel_y, panel_width, panel_height), border_radius=6)
-        pygame.draw.rect(surface, (60, 75, 95), 
-                        (panel_x, panel_y, panel_width, panel_height), 1, border_radius=6)
+        # Professional panel background
+        pygame.draw.rect(surface, (25, 30, 40), 
+                        (panel_x, panel_y, panel_width, panel_height), border_radius=8)
+        pygame.draw.rect(surface, (60, 80, 110), 
+                        (panel_x, panel_y, panel_width, panel_height), 1, border_radius=8)
         
         # Panel title
-        title_font = pygame.font.SysFont("Segoe UI", 12, bold=True)
-        title_surface = title_font.render("MARKET DATA", True, (180, 200, 230))
+        header_font = pygame.font.SysFont("Segoe UI", 12, bold=True)
+        title_surface = header_font.render("MARKET DATA", True, (180, 200, 230))
         surface.blit(title_surface, (panel_x + 20, panel_y + 20))
         
-        # Stats data
+        # Statistics data
         label_font = pygame.font.SysFont("Segoe UI", 10)
-        value_font = pygame.font.SysFont("Segoe UI", 12, bold=True)
+        value_font = pygame.font.SysFont("Segoe UI", 14, bold=True)
         
         stats = [
             ("Market Cap", format_large_number(self.coin_data.get('market_cap', 0))),
@@ -714,7 +787,7 @@ class CleanCryptoModal:
         ]
         
         y_offset = panel_y + 50
-        line_height = 40
+        line_height = 45
         
         for i, (label, value) in enumerate(stats):
             current_y = y_offset + i * line_height
@@ -723,49 +796,50 @@ class CleanCryptoModal:
             label_surface = label_font.render(label, True, (140, 160, 180))
             surface.blit(label_surface, (panel_x + 20, current_y))
             
-            # Value with appropriate color
+            # Value with appropriate colors
             if "Market Cap" in label or "Volume" in label:
-                value_color = (120, 180, 150)
+                value_color = (120, 200, 150)
             elif "Rank" in label:
-                value_color = (180, 160, 120)
+                value_color = (200, 180, 120)
             else:
-                value_color = (200, 210, 230)
+                value_color = (200, 220, 255)
                 
             value_surface = value_font.render(str(value), True, value_color)
-            surface.blit(value_surface, (panel_x + 20, current_y + 12))
+            surface.blit(value_surface, (panel_x + 20, current_y + 15))
             
     def render_close_button(self, surface: pygame.Surface):
-        """Render clean close button"""
-        button_size = 30
+        """Render professional close button - FIXED X BUTTON"""
+        button_size = 32
         button_x = self.width - button_size - 15
         button_y = 15
         
+        # Store button rect for click detection
         self.close_button_rect = pygame.Rect(button_x, button_y, button_size, button_size)
         
-        # Check hover
-        mouse_in_button = self.close_button_rect.collidepoint(
-            self.mouse_pos[0] - self.x, self.mouse_pos[1] - self.y
-        )
+        # Check hover state using relative mouse position
+        relative_mouse = (self.mouse_pos[0] - self.x, self.mouse_pos[1] - self.y)
+        mouse_in_button = self.close_button_rect.collidepoint(relative_mouse)
         
-        # Button styling
+        # Button styling based on hover
         if mouse_in_button:
-            bg_color = (180, 70, 70)
-            border_color = (200, 90, 90)
+            bg_color = (200, 70, 70)
+            border_color = (220, 90, 90)
             x_color = (255, 255, 255)
         else:
-            bg_color = (100, 50, 50)
-            border_color = (130, 70, 70)
+            bg_color = (120, 50, 50)
+            border_color = (150, 70, 70)
             x_color = (200, 200, 200)
             
-        # Clean button background
+        # Render button background
         pygame.draw.rect(surface, bg_color, self.close_button_rect, border_radius=4)
         pygame.draw.rect(surface, border_color, self.close_button_rect, 1, border_radius=4)
         
-        # Clean X symbol
+        # Render X symbol - FIXED
         center_x = button_x + button_size // 2
         center_y = button_y + button_size // 2
         line_len = button_size // 4
         
+        # Draw clean X with proper positioning
         pygame.draw.line(surface, x_color, 
                         (center_x - line_len, center_y - line_len),
                         (center_x + line_len, center_y + line_len), 2)

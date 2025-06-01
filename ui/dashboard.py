@@ -1,5 +1,6 @@
 """
 Main Dashboard UI components and layout management
+FIXED: Added missing force_layout_update method
 """
 
 import pygame
@@ -26,6 +27,8 @@ class Dashboard:
     def __init__(self):
         self.crypto_table = CryptoTable()
         self.last_update = time.time()
+        self.current_layout_areas = None
+        self.layout_update_needed = False
         
     def load_initial_data(self):
         """Load initial data for the dashboard"""
@@ -85,6 +88,12 @@ class Dashboard:
         """Force complete loading (for manual skip)"""
         loading_complete.set()
     
+    def force_layout_update(self):
+        """Force layout update for screen size changes - FIXED METHOD"""
+        self.layout_update_needed = True
+        self.current_layout_areas = None
+        print("🔄 Dashboard layout update requested")
+    
     def get_crypto_data(self):
         """Get current cryptocurrency data"""
         return get_crypto_data()
@@ -93,22 +102,34 @@ class Dashboard:
         """Calculate layout areas for different components"""
         width, height = screen_size
         
-        return {
-            'bubble_area': pygame.Rect(0, 0, 
-                                     int(width * LAYOUT['bubble_width_ratio']), 
-                                     int(height * LAYOUT['bubble_height_ratio'])),
-            'table_area': pygame.Rect(0, 
-                                    int(height * LAYOUT['bubble_height_ratio']), 
-                                    int(width * LAYOUT['bubble_width_ratio']), 
-                                    int(height * (1 - LAYOUT['bubble_height_ratio']))),
-            'news_area': pygame.Rect(int(width * LAYOUT['bubble_width_ratio']), 0, 
-                                   int(width * LAYOUT['news_width_ratio']), 
-                                   int(height * LAYOUT['news_height_ratio'])),
-            'fear_area': pygame.Rect(int(width * LAYOUT['bubble_width_ratio']), 
-                                   int(height * LAYOUT['news_height_ratio']), 
-                                   int(width * LAYOUT['news_width_ratio']), 
-                                   int(height * LAYOUT['fear_greed_height_ratio']))
-        }
+        # Update layout if needed or if screen size changed
+        if (self.current_layout_areas is None or 
+            self.layout_update_needed or
+            (self.current_layout_areas and 
+             self.current_layout_areas.get('screen_size') != screen_size)):
+            
+            self.current_layout_areas = {
+                'screen_size': screen_size,
+                'bubble_area': pygame.Rect(0, 0, 
+                                         int(width * LAYOUT['bubble_width_ratio']), 
+                                         int(height * LAYOUT['bubble_height_ratio'])),
+                'table_area': pygame.Rect(0, 
+                                        int(height * LAYOUT['bubble_height_ratio']), 
+                                        int(width * LAYOUT['bubble_width_ratio']), 
+                                        int(height * (1 - LAYOUT['bubble_height_ratio']))),
+                'news_area': pygame.Rect(int(width * LAYOUT['bubble_width_ratio']), 0, 
+                                       int(width * LAYOUT['news_width_ratio']), 
+                                       int(height * LAYOUT['news_height_ratio'])),
+                'fear_area': pygame.Rect(int(width * LAYOUT['bubble_width_ratio']), 
+                                       int(height * LAYOUT['news_height_ratio']), 
+                                       int(width * LAYOUT['news_width_ratio']), 
+                                       int(height * LAYOUT['fear_greed_height_ratio']))
+            }
+            
+            self.layout_update_needed = False
+            print(f"📐 Layout updated for {screen_size}")
+        
+        return self.current_layout_areas
     
     def update(self):
         """Update dashboard components"""

@@ -1,6 +1,6 @@
 """
-Perfected Fear & Greed Index Chart
-Enhanced with better fonts, corrected loading order, improved fills, and centered layout
+Refined Fear & Greed Index Chart
+Enhanced with shorter tick marks, responsive labels, and consistent color direction
 """
 
 import pygame
@@ -22,11 +22,11 @@ def get_fear_greed_label(value):
         return "Extreme Greed"
 
 def get_perfected_fear_greed_color(value):
-    """Get perfected color progression with smooth transitions - FIXED for left-to-right"""
+    """Get perfected color progression with smooth transitions - CONSISTENT"""
     # Clamp value between 0 and 100
     value = max(0, min(100, value))
     
-    # CORRECTED: Now 0=red (left), 100=green (right)
+    # CONSISTENT: 0=red (fear), 100=green (greed)
     if value <= 25:
         # 0-25: Deep Red to Red-Orange (Extreme Fear to Fear)
         t = value / 25
@@ -69,48 +69,44 @@ def create_enhanced_gauge_fill(center_x, center_y, radius, value):
     size = radius * 2 + 40
     fill_surface = pygame.Surface((size, size), pygame.SRCALPHA)
     
-    # Calculate the angle for the current value
-    target_angle = math.pi * (value / 100)
+    # Calculate the total angle coverage for the current value
+    total_angle_coverage = math.pi * (value / 100)  # 0 to π radians
     
-    # CONSISTENT: Color gradient should match the logical value progression
+    # FIXED: Fill from left (π) to right (0) as value increases
     # Left side (π) = 0 = Red (Fear), Right side (0) = 100 = Green (Greed)
     segments = 100  # High resolution for smooth gradient
     
-    for i in range(segments):
-        # Calculate angles for this segment
-        segment_progress = i / segments
-        segment_angle = segment_progress * target_angle
-        segment_end_angle = ((i + 1) / segments) * target_angle
+    if total_angle_coverage > 0:
+        angle_per_segment = total_angle_coverage / segments
         
-        # CONSISTENT: Map segment position to value correctly
-        # segment_angle goes from 0 to target_angle
-        # We want this to map from current_value down to 0 (since we draw left to right)
-        if target_angle > 0:
-            # For the gradient: early segments (small angles) should have current value
-            # later segments (larger angles) should approach 0
-            angle_ratio = segment_angle / target_angle  # 0 to 1
-            segment_value = value * (1 - angle_ratio)  # value down to 0
-        else:
-            segment_value = 0
-        
-        segment_color = get_perfected_fear_greed_color(segment_value)
-        
-        # Draw multiple layers for each segment for smooth appearance
-        for thickness in range(12, 0, -2):
-            alpha = int(255 * (13 - thickness) / 12 * 0.8)
-            layer_color = (*segment_color, alpha)
+        for i in range(segments):
+            # Calculate angles for this segment - filling from left to right
+            # Start from π (left) and progress toward 0 (right)
+            segment_start_angle = math.pi - (i * angle_per_segment)
+            segment_end_angle = math.pi - ((i + 1) * angle_per_segment)
             
-            try:
-                arc_rect = pygame.Rect(20, 20, radius * 2, radius * 2)
-                pygame.draw.arc(fill_surface, layer_color[:3], arc_rect,
-                               segment_angle, segment_end_angle, thickness)
-            except:
-                pass
+            # Map segment position to color value (left=0, right=100)
+            segment_progress = i / segments  # 0 to 1
+            segment_value = value * segment_progress  # 0 up to current value
+        
+            segment_color = get_perfected_fear_greed_color(segment_value)
+            
+            # Draw multiple layers for each segment for smooth appearance
+            for thickness in range(12, 0, -2):
+                alpha = int(255 * (13 - thickness) / 12 * 0.8)
+                layer_color = (*segment_color, alpha)
+                
+                try:
+                    arc_rect = pygame.Rect(20, 20, radius * 2, radius * 2)
+                    pygame.draw.arc(fill_surface, layer_color[:3], arc_rect,
+                                   segment_end_angle, segment_start_angle, thickness)
+                except:
+                    pass
     
     return fill_surface
 
 def draw_fear_greed_chart(surface, fear_greed_data):
-    """Draw perfected Fear & Greed Index chart with enhanced design"""
+    """Draw refined Fear & Greed Index chart with enhanced design"""
     surface.fill(COLORS['panel_bg'])
     width, height = surface.get_size()
     
@@ -150,17 +146,16 @@ def draw_fear_greed_chart(surface, fear_greed_data):
     surface.blit(status_surface, (title_x + title_surface.get_width() + 10, title_y + 1))
     
     # Chart positioning - BETTER CENTERED
-    chart_center_x = int(width * 0.40)  # Slightly more centered
-    chart_center_y = int(height * 0.48)  # Better vertical centering
+    chart_center_x = int(width * 0.40)
+    chart_center_y = int(height * 0.48)
     chart_radius = min(width // 4.5, height // 3.5)
     chart_radius = max(chart_radius, 60)
     
-    # Enhanced gauge background with better appearance
+    # Enhanced gauge background
     def render_perfected_gauge_background():
         """Render perfected gauge background"""
         bg_surface = pygame.Surface((chart_radius * 2 + 40, chart_radius * 2 + 40), pygame.SRCALPHA)
         
-        # Multiple layers for depth and smoothness
         for layer in range(15):
             layer_radius = chart_radius - layer
             if layer_radius <= 0:
@@ -169,7 +164,6 @@ def draw_fear_greed_chart(surface, fear_greed_data):
             layer_alpha = max(12, 90 - layer * 5)
             layer_color = (45, 55, 70, layer_alpha)
             
-            # Smooth arc background
             try:
                 arc_rect = pygame.Rect(
                     20 + layer, 20 + layer,
@@ -191,7 +185,7 @@ def draw_fear_greed_chart(surface, fear_greed_data):
     gauge_bg = render_perfected_gauge_background()
     surface.blit(gauge_bg, (chart_center_x - chart_radius - 20, chart_center_y - chart_radius - 20))
     
-    # PERFECTED value arc with smooth gradient fill (Red → Green)
+    # Value arc with smooth gradient fill
     value_fill = create_enhanced_gauge_fill(chart_center_x, chart_center_y, chart_radius, value)
     surface.blit(value_fill, (chart_center_x - chart_radius - 20, chart_center_y - chart_radius - 20))
     
@@ -213,7 +207,7 @@ def draw_fear_greed_chart(surface, fear_greed_data):
     label_rect = label_surface.get_rect(center=(chart_center_x, chart_center_y + 25))
     surface.blit(label_surface, label_rect)
     
-    # Enhanced historical data panel - BETTER POSITIONED
+    # Enhanced historical data panel
     hist_x = chart_center_x + chart_radius + 35
     hist_start_y = chart_center_y - 50
     
@@ -261,7 +255,7 @@ def draw_fear_greed_chart(surface, fear_greed_data):
         
         return y_pos + line_height
     
-    # Render historical data with perfected styling
+    # Render historical data
     current_y = hist_start_y
     
     if yesterday_data['value'] is not None:
@@ -279,11 +273,7 @@ def draw_fear_greed_chart(surface, fear_greed_data):
         current_y = draw_perfected_historical_line(current_y, "Last Month", last_month_data['value'], 
                                                  last_month_label, last_month_data.get('change', 0))
     
-    # FIXED: Thin straight indicators BETWEEN center value and gauge
-    scale_font = pygame.font.SysFont("Segoe UI", 11, bold=True)
-    desc_font = pygame.font.SysFont("Segoe UI", 10, bold=True)
-    
-    # Scale points with exact colors
+    # REFINED: Shorter tick indicators positioned closer to center
     scale_points = [
         (0, "0", "Extreme Fear", (200, 40, 40)),
         (25, "25", "Fear", (255, 110, 50)),
@@ -292,46 +282,41 @@ def draw_fear_greed_chart(surface, fear_greed_data):
         (100, "100", "Extreme Greed", (60, 220, 80))
     ]
     
-    # Draw THIN STRAIGHT indicators between center and gauge
+    # Draw SHORTER tick indicators positioned closer to center (50% shorter)
     for scale_value, scale_text, scale_desc, scale_color in scale_points:
-        # Position indicators along the arc
         scale_angle = math.pi * (1 - scale_value / 100)
         
-        # FIXED: Thin straight lines positioned BETWEEN center value and gauge
-        indicator_start_radius = chart_radius * 0.6  # Start closer to center
-        indicator_end_radius = chart_radius * 0.8    # End before gauge
+        # REFINED: Shorter tick marks positioned closer to center
+        indicator_start_radius = chart_radius * 0.75  # Moved closer to center (was 0.6)
+        indicator_end_radius = chart_radius * 0.85    # Shorter length (50% reduction)
         
         start_x = chart_center_x + int(indicator_start_radius * math.cos(scale_angle))
         start_y = chart_center_y - int(indicator_start_radius * math.sin(scale_angle))
         end_x = chart_center_x + int(indicator_end_radius * math.cos(scale_angle))
         end_y = chart_center_y - int(indicator_end_radius * math.sin(scale_angle))
         
-        # Draw thin straight line (thickness = 2)
+        # Draw shorter tick line
         pygame.draw.line(surface, scale_color, (start_x, start_y), (end_x, end_y), 2)
-        
-        # Optional: Small arrow at the end pointing towards gauge
-        # Calculate arrow tip
-        arrow_length = 4
-        arrow_tip_x = end_x + int(arrow_length * math.cos(scale_angle))
-        arrow_tip_y = end_y - int(arrow_length * math.sin(scale_angle))
-        
-        # Draw small arrow
-        pygame.draw.line(surface, scale_color, (end_x, end_y), (arrow_tip_x, arrow_tip_y), 2)
     
-    # Scale labels positioned below the gauge
+    # RESPONSIVE: Bottom labels positioned to fill available width evenly
     scale_y = chart_center_y + chart_radius + 30
     scale_descriptions = ["Extreme Fear", "Fear", "Neutral", "Greed", "Extreme Greed"]
     scale_numbers = ["0", "25", "50", "75", "100"]
     scale_colors = [(200, 40, 40), (255, 110, 50), (255, 255, 70), (80, 255, 100), (60, 220, 80)]
     
-    # Calculate spacing to fit all labels properly
-    available_width = chart_radius * 2
-    label_spacing = available_width / 4  # 4 intervals for 5 labels
-    start_x = chart_center_x - chart_radius
+    # RESPONSIVE: Calculate expanded spacing to use more available width
+    available_width = min(width * 0.8, chart_radius * 3)  # Use 80% of panel width or 3x radius
+    labels_left = chart_center_x - available_width // 2
     
-    # Draw horizontal layout with proper spacing
+    # Font sizes for labels
+    scale_font = pygame.font.SysFont("Segoe UI", 11, bold=True)
+    desc_font = pygame.font.SysFont("Segoe UI", 10, bold=True)
+    
+    # Evenly distribute labels across expanded width
     for i in range(5):
-        x_pos = start_x + (i * label_spacing)
+        # Calculate position as percentage across expanded width (0%, 25%, 50%, 75%, 100%)
+        position_ratio = i / 4
+        x_pos = labels_left + (position_ratio * available_width)
         
         # Number with color
         num_surface = scale_font.render(scale_numbers[i], True, scale_colors[i])
@@ -343,10 +328,9 @@ def draw_fear_greed_chart(surface, fear_greed_data):
         desc_rect = desc_surface.get_rect(center=(x_pos, scale_y + 18))
         surface.blit(desc_surface, desc_rect)
     
-    # REPOSITIONED legend and timestamp with better spacing
+    # Professional timestamp
     legend_start_y = scale_y + 45
     
-    # Professional timestamp positioned properly
     if timestamp:
         try:
             current_time = datetime.datetime.fromtimestamp(int(timestamp))
@@ -356,13 +340,13 @@ def draw_fear_greed_chart(surface, fear_greed_data):
             
             time_x = (width - time_surface.get_width()) // 2
             time_y = legend_start_y
-            if time_y + 15 < height - 5:  # Only show if fits
+            if time_y + 15 < height - 5:
                 surface.blit(time_surface, (time_x, time_y))
                 legend_start_y += 20
         except:
             pass
     
-    # Compact legend - only show if there's space
+    # Compact legend
     if legend_start_y + 15 < height - 5:
         legend_font = pygame.font.SysFont("Segoe UI", 9)
         legend_text = "Market sentiment: Red (Fear) → Yellow (Neutral) → Green (Greed)"

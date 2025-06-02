@@ -1,6 +1,6 @@
 """
-Enhanced Bubble Physics with Dynamic Scaling and Symbol Display (Fixed)
-Complete physics/bubble.py file with symbol display like the table
+Enhanced Bubble Physics with Dynamic Scaling and Space-Efficient Layout
+Bubbles scale to available space with clean, size-adaptive content display
 """
 
 import pygame
@@ -48,7 +48,7 @@ class SpaceCalculator:
         return max(0.5, min(3.0, final_scale))
 
 class EnhancedFloatingBubble:
-    """Enhanced bubble with dynamic scaling and symbol display"""
+    """Enhanced bubble with dynamic scaling and clean content display"""
     
     def __init__(self, space, coin_data, bounds, screen_size, scale_factor=1.0):
         self.coin_data = coin_data
@@ -193,20 +193,27 @@ class EnhancedFloatingBubble:
         self.content_spacing = max(2, int(self.radius * 0.1))
 
     def get_display_name(self):
-        """Get symbol for display - FIXED to use symbols like table"""
-        # Always use symbol like the table, adapted to bubble size
+        """Get appropriate display name based on bubble size"""
+        coin_name = self.coin_data.get('name', self.symbol)
+        
         if self.radius < self.small_threshold:
-            # Small bubbles: 3-4 character symbols
+            # Small: Use symbol or short name
             if len(self.symbol) <= 4:
                 return self.symbol
             else:
-                return self.symbol[:3]  # Max 3 chars for small bubbles
+                return self.symbol[:4]
         elif self.radius < self.medium_threshold:
-            # Medium bubbles: full symbol
-            return self.symbol
+            # Medium: Use symbol or truncated name
+            if len(coin_name) <= 8:
+                return coin_name
+            else:
+                return coin_name[:8] + "..."
         else:
-            # Large bubbles: full symbol (never long names)
-            return self.symbol
+            # Large: Use full name or longer truncation
+            if len(coin_name) <= 12:
+                return coin_name
+            else:
+                return coin_name[:12] + "..."
 
     def apply_enhanced_floating_forces(self):
         """Apply floating forces for smooth movement"""
@@ -351,17 +358,18 @@ class EnhancedFloatingBubble:
         return SYMBOL_TO_ID.get(self.symbol, self.symbol.lower())
 
     def draw(self, surface):
-        """Draw bubble with symbol display like table - FIXED"""
+        """Draw bubble with clean, size-adaptive content"""
         x, y = int(self.body.position.x), int(self.body.position.y)
         
         # Determine colors
         is_negative = self.price_change < 0
         edge_color = COLORS['negative'] if is_negative else COLORS['positive']
         
-        # Enhanced gradient bubble effect (ring only, no background)
+        # Enhanced gradient bubble effect (NO BACKGROUND CIRCLES AT ALL)
         circle_surf = pygame.Surface((int(self.radius * 2.2), int(self.radius * 2.2)), pygame.SRCALPHA)
         center_pos = (int(self.radius * 1.1), int(self.radius * 1.1))
         
+        # Create only the outer ring/border effect (no filled background)
         ring_thickness = max(2, int(self.radius * 0.15))
         
         for i in range(ring_thickness):
@@ -383,7 +391,7 @@ class EnhancedFloatingBubble:
         
         surface.blit(circle_surf, (x - int(self.radius * 1.1), y - int(self.radius * 1.1)))
         
-        # CLEAN CONTENT: LOGO + SYMBOL + % CHANGE
+        # CLEAN CONTENT DISPLAY (ALL BUBBLES SHOW: LOGO + NAME + % CHANGE)
         content_y = y - int(self.radius * 0.4)
         
         # Logo (top)
@@ -392,7 +400,7 @@ class EnhancedFloatingBubble:
             surface.blit(self.logo_surface, logo_rect)
             next_y = logo_rect.bottom + self.content_spacing
         else:
-            # Text fallback (no gray circle)
+            # Text fallback (NO GRAY CIRCLE)
             fallback_font = pygame.font.SysFont("Arial", max(6, int(self.radius * 0.4)), bold=True)
             fallback_text = self.symbol[:3]
             fallback_surface = fallback_font.render(fallback_text, True, (255, 255, 255))
@@ -400,23 +408,27 @@ class EnhancedFloatingBubble:
             surface.blit(fallback_surface, fallback_rect)
             next_y = fallback_rect.bottom + self.content_spacing
         
-        # Symbol (middle) - FIXED to use symbols like table
-        display_symbol = self.get_display_name()  # Now returns symbol only
-        symbol_font = pygame.font.SysFont("Arial", self.name_font_size, bold=True)
-        symbol_surface = symbol_font.render(display_symbol, True, COLORS['text_primary'])
-        symbol_rect = symbol_surface.get_rect(center=(x, next_y))
+        # Coin name (middle) - size-adaptive
+        display_name = self.get_display_name()
+        name_font = pygame.font.SysFont("Arial", self.name_font_size, bold=True)
+        name_surface = name_font.render(display_name, True, COLORS['text_primary'])
+        name_rect = name_surface.get_rect(center=(x, next_y))
         
-        # Ensure symbol fits within bubble
+        # Ensure name fits within bubble
         max_width = int(self.radius * 1.8)
-        if symbol_surface.get_width() > max_width:
-            # If still doesn't fit, shorten more
-            shortened_symbol = display_symbol[:3] if len(display_symbol) > 3 else display_symbol
-            symbol_surface = symbol_font.render(shortened_symbol, True, COLORS['text_primary'])
+        if name_surface.get_width() > max_width:
+            # Truncate further if needed
+            for i in range(len(display_name) - 1, 1, -1):
+                test_name = display_name[:i] + "..."
+                test_surface = name_font.render(test_name, True, COLORS['text_primary'])
+                if test_surface.get_width() <= max_width:
+                    name_surface = test_surface
+                    break
         
-        surface.blit(symbol_surface, symbol_rect)
-        next_y = symbol_rect.bottom + self.content_spacing
+        surface.blit(name_surface, name_rect)
+        next_y = name_rect.bottom + self.content_spacing
         
-        # Percentage change (bottom)
+        # Percentage change (bottom) - size-adaptive
         pct_color = COLORS['positive'] if not is_negative else COLORS['negative']
         pct_text = f"{self.price_change:+.1f}%"
         

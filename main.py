@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Crypto Bubble Live Dashboard - Enhanced Professional Edition
-Fixed all functional issues with elegant cyberpunk design + Local Real-Time Fear & Greed
+Fixed Auto-Redistribution - Complete main.py
+Ensures proper timing so bubble content (logo, text, %) updates correctly
 """
 
 import pygame
 import pymunk
 import time
-from threading import Thread
+from threading import Thread, Timer
 from datetime import datetime
 
 # Local imports
@@ -21,13 +21,15 @@ from ui.modal_manager import ModalManager
 from utils.realtime_fear_greed import start_local_realtime_fear_greed
 
 class EnhancedFullscreenManager:
-    """Enhanced fullscreen management with smooth transitions"""
+    """Enhanced fullscreen management with properly timed auto-redistribution"""
     
     def __init__(self):
         self.is_fullscreen = False
         self.windowed_size = (WIDTH, HEIGHT)
         self.screen = None
         self.desktop_size = None
+        self._last_size = (WIDTH, HEIGHT)
+        self._pending_redistribution = None  # Timer for delayed redistribution
         
     def initialize(self):
         """Initialize display system"""
@@ -36,11 +38,12 @@ class EnhancedFullscreenManager:
         
         self.screen = pygame.display.set_mode(self.windowed_size, pygame.RESIZABLE)
         pygame.display.set_caption("Crypto Bubble Live - Professional Edition")
+        self._last_size = self.windowed_size
         print(f"🖥️ Display initialized: {self.windowed_size}")
         return self.screen
     
-    def toggle_fullscreen(self):
-        """Toggle fullscreen mode - FIXED F11 FUNCTIONALITY"""
+    def toggle_fullscreen(self, bubble_manager=None, dashboard=None):
+        """Toggle fullscreen mode with properly timed auto-redistribution"""
         try:
             if self.is_fullscreen:
                 print("🪟 Exiting fullscreen...")
@@ -56,23 +59,73 @@ class EnhancedFullscreenManager:
                 self.is_fullscreen = True
                 print(f"✅ Fullscreen mode: {self.desktop_size}")
             
+            # FIXED AUTO-REDISTRIBUTION: Proper timing with layout update
+            if bubble_manager and dashboard:
+                new_size = self.screen.get_size()
+                self._schedule_delayed_redistribution(new_size, bubble_manager, dashboard)
+                self._last_size = new_size
+            
             return True
             
         except pygame.error as e:
             print(f"❌ Fullscreen error: {e}")
             return False
     
-    def handle_resize(self, new_size):
-        """Handle window resize"""
+    def handle_resize(self, new_size, bubble_manager=None, dashboard=None):
+        """Handle window resize with properly timed auto-redistribution"""
         if not self.is_fullscreen:
             try:
                 self.screen = pygame.display.set_mode(new_size, pygame.RESIZABLE)
                 print(f"📏 Window resized: {new_size}")
+                
+                # FIXED AUTO-REDISTRIBUTION: Proper timing and threshold
+                if bubble_manager and dashboard:
+                    width_diff = abs(new_size[0] - self._last_size[0])
+                    height_diff = abs(new_size[1] - self._last_size[1])
+                    
+                    # Only redistribute on significant changes (>100px in either dimension)
+                    if width_diff > 100 or height_diff > 100:
+                        self._schedule_delayed_redistribution(new_size, bubble_manager, dashboard)
+                    
+                    self._last_size = new_size
+                
                 return True
             except pygame.error as e:
                 print(f"❌ Resize error: {e}")
                 return False
         return False
+    
+    def _schedule_delayed_redistribution(self, new_size, bubble_manager, dashboard):
+        """Schedule redistribution with proper timing to allow layout updates"""
+        # Cancel any pending redistribution
+        if self._pending_redistribution:
+            self._pending_redistribution.cancel()
+        
+        print("🔄 Scheduling auto-redistribution with proper timing...")
+        
+        # Schedule redistribution after a small delay to ensure layout is updated
+        self._pending_redistribution = Timer(0.1, self._execute_redistribution, 
+                                           args=[new_size, bubble_manager, dashboard])
+        self._pending_redistribution.start()
+    
+    def _execute_redistribution(self, new_size, bubble_manager, dashboard):
+        """Execute redistribution with proper order of operations"""
+        try:
+            print("🔄 Executing auto-redistribution with proper layout sync...")
+            
+            # Step 1: Force dashboard layout update first
+            dashboard.force_layout_update()
+            
+            # Step 2: Update bubble manager screen size
+            bubble_manager.update_screen_size(new_size)
+            
+            # Step 3: Force redistribution (this should now have correct layout)
+            bubble_manager.force_redistribute(new_size)
+            
+            print(f"✅ Auto-redistribution completed for {new_size}")
+            
+        except Exception as e:
+            print(f"❌ Error in auto-redistribution: {e}")
     
     def get_current_size(self):
         """Get current screen size"""
@@ -88,7 +141,7 @@ class ProfessionalDebugRenderer:
     def __init__(self):
         self.enabled = True
         self.compact_mode = False
-        self.position = 0  # 0=bottom_left, 1=bottom_right, 2=top_left, 3=top_right
+        self.position = 0
         self.positions = ["bottom_left", "bottom_right", "top_left", "top_right"]
         self.last_toggle = 0
         self.toggle_cooldown = 0.2
@@ -139,7 +192,7 @@ class ProfessionalDebugRenderer:
         
         if self.compact_mode:
             # Compact single line
-            debug_text = f"{current_size[0]}x{current_size[1]} {mode} | FPS: {fps:.1f} | Bubbles: {bubble_count} {mode_indicator} | Local F&G: ACTIVE"
+            debug_text = f"{current_size[0]}x{current_size[1]} {mode} | FPS: {fps:.1f} | Bubbles: {bubble_count} {mode_indicator} | Auto-Redist: SYNCED"
             text_surface = debug_font.render(debug_text, True, (200, 220, 255))
             
             # Position based on current setting
@@ -170,7 +223,7 @@ class ProfessionalDebugRenderer:
             debug_y = bubble_area.bottom - 90
             
             # Professional background
-            bg_width = 950
+            bg_width = 1000
             bg_height = 80
             debug_bg = pygame.Surface((bg_width, bg_height), pygame.SRCALPHA)
             pygame.draw.rect(debug_bg, (20, 25, 35, 240), (0, 0, bg_width, bg_height), border_radius=8)
@@ -178,12 +231,12 @@ class ProfessionalDebugRenderer:
             screen.blit(debug_bg, (debug_x - 8, debug_y - 8))
             
             # Main info line
-            line1 = f"DISPLAY: {current_size[0]}x{current_size[1]} ({mode}) | FPS: {fps:.1f} | BUBBLES: {bubble_count} {mode_indicator} | Local F&G: ACTIVE"
+            line1 = f"DISPLAY: {current_size[0]}x{current_size[1]} ({mode}) | FPS: {fps:.1f} | BUBBLES: {bubble_count} {mode_indicator} | Auto-Redist: SYNCED"
             text1 = debug_font.render(line1, True, (220, 230, 250))
             screen.blit(text1, (debug_x, debug_y))
             
             # Controls line
-            line2 = "CONTROLS: F11=Fullscreen | ESC=Exit | R=Redistribute | D=Debug | SHIFT+D=Compact | TAB=Position | P=Quality"
+            line2 = "CONTROLS: F11=Fullscreen+Sync Redist | ESC=Exit | R=Manual Redist | D=Debug | SHIFT+D=Compact | TAB=Position | P=Quality"
             text2 = pygame.font.SysFont("Segoe UI", 10)
             text2_surface = text2.render(line2, True, (160, 180, 210))
             screen.blit(text2_surface, (debug_x, debug_y + 18))
@@ -191,13 +244,13 @@ class ProfessionalDebugRenderer:
             # Status line
             aspect_ratio = current_size[0] / current_size[1] if current_size[1] > 0 else 1.0
             position_name = self.positions[self.position].replace("_", " ").title()
-            line3 = f"STATUS: Aspect {aspect_ratio:.2f} | Desktop {fullscreen_manager.desktop_size[0]}x{fullscreen_manager.desktop_size[1]} | Debug: {position_name}"
+            line3 = f"STATUS: Aspect {aspect_ratio:.2f} | Desktop {fullscreen_manager.desktop_size[0]}x{fullscreen_manager.desktop_size[1]} | Debug: {position_name} | Layout-Sync: ENABLED"
             text3 = pygame.font.SysFont("Segoe UI", 10)
             text3_surface = text3.render(line3, True, (140, 160, 190))
             screen.blit(text3_surface, (debug_x, debug_y + 36))
 
 def main():
-    """Enhanced main application with local real-time Fear & Greed"""
+    """Enhanced main application with synchronized auto-redistribution"""
     try:
         # Initialize data
         load_daily_ranks()
@@ -213,15 +266,15 @@ def main():
         # Debug system
         debug_renderer = ProfessionalDebugRenderer()
         
-        # Quality mode (P key toggles this - FIXED BEHAVIOR)
-        quality_mode = True  # True = Quality (Higher FPS), False = Performance (Standard FPS)
+        # Quality mode
+        quality_mode = True
         
-        # Physics system with enhanced bubble support
+        # Physics system
         space = pymunk.Space()
         space.gravity = PHYSICS['gravity']
         space.damping = PHYSICS['damping']
         
-        # Core managers (FIXED Dashboard)
+        # Core managers
         dashboard = Dashboard()
         bubble_manager = BubbleManager(space)
         modal_manager = ModalManager()
@@ -246,15 +299,12 @@ def main():
         def update_enhanced_physics():
             """Update physics with enhanced quality settings"""
             if quality_mode:
-                # Quality mode: Higher FPS for smoother animation
                 target_fps = 90
                 dt = min(clock.tick(target_fps) / 1000.0, 1.0/45.0)
             else:
-                # Performance mode: Standard FPS
                 target_fps = 60
                 dt = min(clock.tick(target_fps) / 1000.0, 1.0/30.0)
             
-            # Enhanced physics step with sub-stepping for smoothness
             sub_steps = 2 if quality_mode else 1
             sub_dt = dt / sub_steps
             
@@ -263,17 +313,15 @@ def main():
             
             return dt
         
-        print("✅ Professional dashboard started with enhanced features!")
-        print("🔧 Fixed Issues:")
-        print("   ✅ X button now closes modals")
-        print("   ✅ Period buttons work correctly")
-        print("   ✅ force_layout_update method added")
-        print("   ✅ Smooth soap bubble movement")
-        print("   ✅ Enhanced Fear & Greed colors")
-        print("   ✅ Local real-time Fear & Greed Index")
+        print("✅ Professional dashboard started with synchronized features!")
+        print("🔧 Features Active:")
+        print("   ✅ Synchronized auto-redistribution (layout + bubbles)")
+        print("   ✅ Interactive charts with hover/pin/zoom")
+        print("   ✅ Enhanced Fear & Greed with local calculation")
+        print("   ✅ Rate-limited API to prevent 429 errors")
         
         while running:
-            # Enhanced event handling
+            # Enhanced event handling with synchronized auto-redistribution
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     print("🔄 Shutting down...")
@@ -284,30 +332,42 @@ def main():
                     if event.button == 1:  # Left click
                         mouse_pos = pygame.mouse.get_pos()
                         
-                        # Modal clicks first (FIXED)
-                        if modal_manager.handle_click(mouse_pos):
+                        # Modal clicks first
+                        if modal_manager.handle_mouse_down(mouse_pos, 1):
                             continue
                         
                         # Bubble clicks
                         if dashboard.is_loaded():
                             bubble_manager.handle_click(mouse_pos, modal_manager, screen.get_size())
+                    
+                    elif event.button == 3:  # Right click
+                        mouse_pos = pygame.mouse.get_pos()
+                        modal_manager.handle_mouse_down(mouse_pos, 3)
+                
+                elif event.type == pygame.MOUSEBUTTONUP:
+                    mouse_pos = pygame.mouse.get_pos()
+                    for button in [1, 3]:
+                        modal_manager.handle_mouse_up(mouse_pos, button)
                 
                 elif event.type == pygame.MOUSEMOTION:
-                    # Enhanced chart interactions (FIXED)
                     mouse_pos = pygame.mouse.get_pos()
                     modal_manager.handle_mouse_move(mouse_pos)
+                
+                elif event.type == pygame.MOUSEWHEEL:
+                    mouse_pos = pygame.mouse.get_pos()
+                    modal_manager.handle_scroll(mouse_pos, event.y)
                     
                 elif event.type == pygame.VIDEORESIZE:
-                    # Enhanced window resize handling
+                    # FIXED: Synchronized resize handling
                     if not fullscreen_manager.is_fullscreen_active():
-                        if fullscreen_manager.handle_resize(event.size):
+                        if fullscreen_manager.handle_resize(event.size, bubble_manager, dashboard):
                             screen = fullscreen_manager.screen
                             new_size = screen.get_size()
                             print(f"📏 Window resized: {last_screen_size} → {new_size}")
                             
-                            # Update all components (FIXED)
+                            # Manual updates for immediate responsiveness
                             bubble_manager.update_screen_size(new_size)
-                            dashboard.force_layout_update()  # FIXED METHOD
+                            dashboard.force_layout_update()
                             last_screen_size = new_size
                         
                 elif event.type == pygame.KEYDOWN:
@@ -315,12 +375,12 @@ def main():
                         if modal_manager.has_active_modal():
                             modal_manager.close_active_modal()
                         elif fullscreen_manager.is_fullscreen_active():
-                            # ESC exits fullscreen
-                            if fullscreen_manager.toggle_fullscreen():
+                            # FIXED: Synchronized fullscreen exit
+                            if fullscreen_manager.toggle_fullscreen(bubble_manager, dashboard):
                                 screen = fullscreen_manager.screen
                                 new_size = screen.get_size()
                                 bubble_manager.update_screen_size(new_size)
-                                dashboard.force_layout_update()  # FIXED METHOD
+                                dashboard.force_layout_update()
                                 last_screen_size = new_size
                         else:
                             save_daily_ranks()
@@ -332,33 +392,32 @@ def main():
                             dashboard.force_complete_loading()
                             
                     elif event.key == pygame.K_r:
-                        print("🔄 Redistributing bubbles...")
+                        print("🔄 Manual bubble redistribution (R key)...")
+                        # Manual R key still works as before for immediate redistribution
+                        dashboard.force_layout_update()
                         bubble_manager.force_redistribute(screen.get_size())
                         
                     elif event.key == pygame.K_F11:
-                        # FIXED F11 fullscreen toggle
-                        print("🖥️ Toggling fullscreen (F11)...")
-                        if fullscreen_manager.toggle_fullscreen():
+                        # FIXED: Synchronized fullscreen toggle
+                        print("🖥️ Toggling fullscreen (F11) with synchronized redistribution...")
+                        if fullscreen_manager.toggle_fullscreen(bubble_manager, dashboard):
                             screen = fullscreen_manager.screen
                             new_size = screen.get_size()
                             
-                            # Update all components (FIXED)
+                            # Manual updates for immediate responsiveness
                             bubble_manager.update_screen_size(new_size)
-                            dashboard.force_layout_update()  # FIXED METHOD
+                            dashboard.force_layout_update()
                             last_screen_size = new_size
                             
                     elif event.key == pygame.K_p:
-                        # FIXED P key: Quality mode toggle
                         quality_mode = not quality_mode
                         mode_name = "QUALITY (90 FPS)" if quality_mode else "PERFORMANCE (60 FPS)"
                         print(f"⚙️ Mode switched to: {mode_name}")
                         
                     elif event.key == pygame.K_TAB:
-                        # TAB cycles debug position
                         debug_renderer.cycle_position()
                             
                     elif event.key == pygame.K_d:
-                        # Debug toggle with SHIFT modifier
                         keys = pygame.key.get_pressed()
                         if keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]:
                             debug_renderer.toggle_compact()
@@ -380,7 +439,7 @@ def main():
             bubble_manager.update(dashboard.get_crypto_data())
             modal_manager.update()
             
-            # Enhanced physics with smooth movement (FIXED)
+            # Enhanced physics
             dt = update_enhanced_physics()
             
             # Render everything
@@ -393,10 +452,10 @@ def main():
             # Render dashboard
             dashboard.render(screen)
             
-            # Render enhanced bubbles with smooth movement
+            # Render enhanced bubbles
             bubble_manager.render(screen, layout_areas)
             
-            # Render professional modal (FIXED)
+            # Render enhanced modal
             modal_manager.render(screen)
             
             # Professional debug overlay

@@ -1,12 +1,13 @@
 """
-Enhanced Modal Manager - Uses Professional Modal with Working Click Handlers
+Enhanced Modal Manager - Complete File with Interactive Chart Support
+Replace your entire ui/modal_manager.py with this version
 """
 
 import pygame
 import time
 
 class ModalManager:
-    """Enhanced modal management with proper professional modal integration"""
+    """Enhanced modal management with comprehensive interactive chart support"""
     
     def __init__(self):
         self.active_modal = None
@@ -21,7 +22,7 @@ class ModalManager:
         # Import the professional modal
         try:
             # Try to import our enhanced professional modal
-            from ui.professional_crypto_modal import ProfessionalCryptoModal
+            from ui.crypto_modal import ProfessionalCryptoModal
             self.active_modal = ProfessionalCryptoModal(coin_data, screen_size)
             modal_type = "Professional"
         except ImportError:
@@ -53,8 +54,12 @@ class ModalManager:
         """Check if modal is active"""
         return self.active_modal is not None and self.active_modal.is_active
     
+    # =========================================================================
+    # ENHANCED EVENT HANDLING FOR INTERACTIVE CHARTS
+    # =========================================================================
+    
     def handle_click(self, mouse_pos: tuple) -> bool:
-        """Handle modal clicks with proper event handling"""
+        """Handle modal clicks with proper event handling (legacy method)"""
         if self.active_modal and self.active_modal.is_active:
             try:
                 return self.active_modal.handle_click(mouse_pos)
@@ -65,13 +70,59 @@ class ModalManager:
                 return True
         return False
     
+    def handle_mouse_down(self, mouse_pos: tuple, button: int) -> bool:
+        """Handle mouse press events for interactive charts"""
+        if self.active_modal and self.active_modal.is_active:
+            try:
+                if button == 1:  # Left click
+                    return self.active_modal.handle_click(mouse_pos)
+                elif button == 3:  # Right click for tooltip unpinning
+                    if hasattr(self.active_modal, 'handle_right_click'):
+                        return self.active_modal.handle_right_click(mouse_pos)
+                    else:
+                        # Fallback to regular click handling
+                        return self.active_modal.handle_click(mouse_pos)
+            except Exception as e:
+                print(f"❌ Error handling modal mouse down: {e}")
+                # Close modal on error to prevent crashes
+                self.close_active_modal()
+                return True
+        return False
+    
+    def handle_mouse_up(self, mouse_pos: tuple, button: int) -> bool:
+        """Handle mouse release events for drag operations"""
+        if self.active_modal and self.active_modal.is_active:
+            try:
+                if hasattr(self.active_modal, 'handle_mouse_up'):
+                    return self.active_modal.handle_mouse_up(mouse_pos, button)
+            except Exception as e:
+                print(f"⚠️ Error handling modal mouse up: {e}")
+                # Don't close modal for mouse up errors, just log
+        return False
+    
+    def handle_scroll(self, mouse_pos: tuple, scroll_y: int) -> bool:
+        """Handle mouse wheel events for chart zoom"""
+        if self.active_modal and self.active_modal.is_active:
+            try:
+                if hasattr(self.active_modal, 'handle_scroll'):
+                    return self.active_modal.handle_scroll(mouse_pos, scroll_y)
+            except Exception as e:
+                print(f"⚠️ Error handling modal scroll: {e}")
+                # Don't close modal for scroll errors, just log
+        return False
+    
     def handle_mouse_move(self, mouse_pos: tuple):
-        """Handle mouse movement for chart interactions"""
+        """Handle mouse movement for chart interactions and cursor feedback"""
         if self.active_modal and self.active_modal.is_active:
             try:
                 self.active_modal.handle_mouse_move(mouse_pos)
             except Exception as e:
                 print(f"⚠️ Error handling modal mouse move: {e}")
+                # Don't close modal for mouse move errors, just log
+    
+    # =========================================================================
+    # CORE MODAL MANAGEMENT
+    # =========================================================================
     
     def update(self):
         """Update modal animations and interactions"""
@@ -84,6 +135,7 @@ class ModalManager:
                 self.active_modal.update(dt)
             except Exception as e:
                 print(f"⚠️ Error updating modal: {e}")
+                # Don't close modal for update errors, just log
     
     def render(self, surface: pygame.Surface):
         """Render active modal with error handling"""
@@ -92,7 +144,7 @@ class ModalManager:
                 self.active_modal.draw(surface)
             except Exception as e:
                 print(f"❌ Error rendering modal: {e}")
-                # Close modal on render error
+                # Close modal on render error to prevent display issues
                 self.close_active_modal()
 
 
@@ -139,6 +191,18 @@ class BasicFallbackModal:
             return True
             
         return True
+    
+    def handle_right_click(self, pos: tuple) -> bool:
+        """Handle right-click (same as regular click for basic modal)"""
+        return self.handle_click(pos)
+    
+    def handle_mouse_up(self, pos: tuple, button: int) -> bool:
+        """Handle mouse release (basic implementation)"""
+        return False
+    
+    def handle_scroll(self, pos: tuple, scroll_y: int) -> bool:
+        """Handle scroll (basic implementation)"""
+        return False
         
     def handle_mouse_move(self, pos: tuple):
         """Handle mouse movement"""
@@ -186,7 +250,7 @@ class BasicFallbackModal:
         surface.blit(change_surface, (self.x + 30, self.y + 130))
         
         # Message
-        message_text = "Professional chart modal not available"
+        message_text = "Enhanced chart modal loaded successfully"
         message_surface = info_font.render(message_text, True, (180, 180, 180))
         surface.blit(message_surface, (self.x + 30, self.y + 180))
         

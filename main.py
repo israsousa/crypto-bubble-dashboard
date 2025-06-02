@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Crypto Bubble Live Dashboard - Enhanced Professional Edition
-Fixed all functional issues with elegant cyberpunk design + Real-Time Fear & Greed
+Fixed all functional issues with elegant cyberpunk design + Local Real-Time Fear & Greed
 """
 
 import pygame
@@ -18,7 +18,7 @@ from ui.loading_screen import draw_loading_screen
 from ui.dashboard import Dashboard
 from physics.bubble_manager import BubbleManager
 from ui.modal_manager import ModalManager
-from utils.realtime_fear_greed import start_realtime_fear_greed
+from utils.realtime_fear_greed import start_local_realtime_fear_greed
 
 class EnhancedFullscreenManager:
     """Enhanced fullscreen management with smooth transitions"""
@@ -139,7 +139,7 @@ class ProfessionalDebugRenderer:
         
         if self.compact_mode:
             # Compact single line
-            debug_text = f"{current_size[0]}x{current_size[1]} {mode} | FPS: {fps:.1f} | Bubbles: {bubble_count} {mode_indicator} | RT F&G: ACTIVE"
+            debug_text = f"{current_size[0]}x{current_size[1]} {mode} | FPS: {fps:.1f} | Bubbles: {bubble_count} {mode_indicator} | Local F&G: ACTIVE"
             text_surface = debug_font.render(debug_text, True, (200, 220, 255))
             
             # Position based on current setting
@@ -178,7 +178,7 @@ class ProfessionalDebugRenderer:
             screen.blit(debug_bg, (debug_x - 8, debug_y - 8))
             
             # Main info line
-            line1 = f"DISPLAY: {current_size[0]}x{current_size[1]} ({mode}) | FPS: {fps:.1f} | BUBBLES: {bubble_count} {mode_indicator} | RT F&G: ACTIVE"
+            line1 = f"DISPLAY: {current_size[0]}x{current_size[1]} ({mode}) | FPS: {fps:.1f} | BUBBLES: {bubble_count} {mode_indicator} | Local F&G: ACTIVE"
             text1 = debug_font.render(line1, True, (220, 230, 250))
             screen.blit(text1, (debug_x, debug_y))
             
@@ -197,7 +197,7 @@ class ProfessionalDebugRenderer:
             screen.blit(text3_surface, (debug_x, debug_y + 36))
 
 def main():
-    """Enhanced main application with real-time Fear & Greed"""
+    """Enhanced main application with local real-time Fear & Greed"""
     try:
         # Initialize data
         load_daily_ranks()
@@ -232,9 +232,9 @@ def main():
         Thread(target=update_news_data, daemon=True).start()
         Thread(target=update_fear_greed, daemon=True).start()
         
-        # START REAL-TIME FEAR & GREED
-        print("🎯 Starting real-time Fear & Greed calculator...")
-        start_realtime_fear_greed()
+        # START LOCAL REAL-TIME FEAR & GREED
+        print("🎯 Starting local real-time Fear & Greed calculator...")
+        start_local_realtime_fear_greed()
         
         # Load initial data
         dashboard.load_initial_data()
@@ -270,7 +270,7 @@ def main():
         print("   ✅ force_layout_update method added")
         print("   ✅ Smooth soap bubble movement")
         print("   ✅ Enhanced Fear & Greed colors")
-        print("   ✅ Real-time Fear & Greed Index")
+        print("   ✅ Local real-time Fear & Greed Index")
         
         while running:
             # Enhanced event handling

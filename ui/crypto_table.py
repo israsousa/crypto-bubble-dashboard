@@ -17,7 +17,7 @@ class CryptoTable:
         self.current_page = 0
         self.last_page_switch = time.time()
         self.page_switch_interval = 10
-        self.headers = ["Rank", "Coin", "Price", "Market Cap", "24h Change", "Volume"]
+        self.headers = ["#", "Coin", "Price", "Market Cap", "24h Change", "Volume"]
     
     def calculate_optimal_layout(self, available_height):
         """Calculate optimal layout"""
@@ -88,7 +88,7 @@ class CryptoTable:
         
         # Font sizes (reduzidos)
         header_font_size = min(16, max(14, row_height // 2 + 2))
-        data_font_size = min(10, max(12, row_height // 2 - 1))
+        data_font_size = min(12, max(14, row_height // 2 - 1))
         rank_font_size = min(16, max(12, row_height // 3 + 1))
         change_font_size = min(14, max(10, row_height // 4))
         

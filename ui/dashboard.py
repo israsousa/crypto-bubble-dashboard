@@ -23,6 +23,7 @@ from utils.rank_tracker import update_daily_rank_tracking
 from utils.logo_loader import preload_top_logos
 from threading import Thread
 
+
 class TimestampManager:
     """Manages data update timestamps and Berlin clock"""
     

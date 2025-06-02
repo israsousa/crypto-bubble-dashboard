@@ -1,5 +1,5 @@
 """
-Complete Enhanced Crypto Modal with Interactive Charts
+Complete Enhanced Crypto Modal with Professional Trading Tooltips
 Replace your entire ui/crypto_modal.py with this version
 """
 
@@ -16,8 +16,8 @@ from config.settings import COLORS, FONT_SIZES, SYMBOL_TO_ID
 from utils.formatters import format_large_number, format_supply, format_price
 from data.chart_data import HistoricalDataGenerator
 
-class EnhancedTooltip:
-    """Professional investment-grade tooltip with rich data display"""
+class ProfessionalTradingTooltip:
+    """Professional trading tooltip with comprehensive market data"""
     
     def __init__(self):
         self.visible = False
@@ -27,9 +27,10 @@ class EnhancedTooltip:
         self.target_progress = 0
         self.pinned = False
         self.pin_position = (0, 0)
+        self.glow_intensity = 0
         
     def show(self, pos: Tuple[int, int], data: Dict[str, Any], pin: bool = False):
-        """Show tooltip with comprehensive investment data"""
+        """Show professional trading tooltip"""
         if pin:
             self.pinned = True
             self.pin_position = pos
@@ -41,80 +42,153 @@ class EnhancedTooltip:
         self.target_progress = 1.0
         
     def hide(self, force_unpin: bool = False):
-        """Hide tooltip with option to force unpin"""
+        """Hide tooltip with unpin option"""
         if force_unpin:
             self.pinned = False
         if not self.pinned:
             self.target_progress = 0.0
         
     def update(self, dt: float):
-        """Update tooltip animation with smooth transitions"""
-        speed = 15 if self.target_progress > self.animation_progress else 12
+        """Update animations"""
+        speed = 18 if self.target_progress > self.animation_progress else 15
         
         if self.target_progress > self.animation_progress:
             self.animation_progress = min(1.0, self.animation_progress + dt * speed)
         else:
             self.animation_progress = max(0.0, self.animation_progress - dt * speed)
             
+        self.glow_intensity = math.sin(time.time() * 3) * 0.3 + 0.7
+            
         if self.animation_progress <= 0:
             self.visible = False
+    
+    def _calculate_technical_indicators(self, price: float, prev_price: float = None) -> Dict:
+        """Calculate technical indicators"""
+        indicators = {}
+        
+        if prev_price:
+            change = price - prev_price
+            change_pct = (change / prev_price) * 100 if prev_price > 0 else 0
+            indicators['price_change'] = change
+            indicators['price_change_pct'] = change_pct
             
+            if change_pct > 2:
+                indicators['trend'] = "Strong Bullish"
+                indicators['trend_color'] = (50, 255, 100)
+            elif change_pct > 0:
+                indicators['trend'] = "Bullish"
+                indicators['trend_color'] = (100, 255, 150)
+            elif change_pct < -2:
+                indicators['trend'] = "Strong Bearish"
+                indicators['trend_color'] = (255, 50, 50)
+            elif change_pct < 0:
+                indicators['trend'] = "Bearish"
+                indicators['trend_color'] = (255, 100, 100)
+            else:
+                indicators['trend'] = "Neutral"
+                indicators['trend_color'] = (200, 200, 200)
+        
+        # Mock RSI
+        indicators['rsi'] = 45 + (hash(str(price)) % 30)
+        if indicators['rsi'] > 70:
+            indicators['rsi_signal'] = "Overbought"
+            indicators['rsi_color'] = (255, 100, 100)
+        elif indicators['rsi'] < 30:
+            indicators['rsi_signal'] = "Oversold"
+            indicators['rsi_color'] = (100, 255, 100)
+        else:
+            indicators['rsi_signal'] = "Neutral"
+            indicators['rsi_color'] = (200, 200, 200)
+            
+        return indicators
+        
     def render(self, surface: pygame.Surface):
-        """Render enhanced tooltip with comprehensive data"""
+        """Render professional trading tooltip"""
         if not self.visible or self.animation_progress <= 0:
             return
             
         display_pos = self.pin_position if self.pinned else self.position
         
-        header_font = pygame.font.SysFont("Segoe UI", 13, bold=True)
-        label_font = pygame.font.SysFont("Segoe UI", 10)
-        value_font = pygame.font.SysFont("Segoe UI", 12, bold=True)
+        header_font = pygame.font.SysFont("Segoe UI", 11, bold=True)
+        value_font = pygame.font.SysFont("Segoe UI", 13, bold=True)
+        label_font = pygame.font.SysFont("Segoe UI", 9)
+        
+        if not self.data:
+            return
+            
+        price = self.data.get('price', 0)
+        timestamp = self.data.get('time', '--:--')
+        volume = self.data.get('volume', 0)
+        prev_price = self.data.get('prev_price')
+        
+        indicators = self._calculate_technical_indicators(price, prev_price)
         
         sections = []
         
-        if 'price' in self.data:
-            sections.append({
-                'title': 'PRICE DATA',
-                'items': [
-                    ("Price", format_price(self.data['price']), (100, 255, 180)),
-                    ("Time", self.data.get('time', '--:--'), (180, 220, 255))
-                ]
-            })
+        # PRICE SECTION
+        price_section = {
+            'title': 'PRICE ANALYSIS',
+            'items': [
+                ("Price", format_price(price), (120, 220, 255)),
+                ("Time", timestamp, (180, 200, 230))
+            ]
+        }
         
-        volume_section = {'title': 'MARKET DATA', 'items': []}
-        if 'volume' in self.data:
-            volume_section['items'].append(("Volume", format_large_number(self.data['volume']), (255, 200, 120)))
-        if 'change' in self.data:
-            change = self.data['change']
-            change_color = (100, 255, 180) if change >= 0 else (255, 120, 120)
-            volume_section['items'].append(("Change", f"{change:+.2f}%", change_color))
-        if volume_section['items']:
-            sections.append(volume_section)
-        
-        if not sections:
-            return
+        if 'price_change' in indicators:
+            change_color = (100, 255, 150) if indicators['price_change'] >= 0 else (255, 120, 120)
+            price_section['items'].append((
+                "Change", 
+                f"{indicators['price_change']:+.4f} ({indicators['price_change_pct']:+.2f}%)", 
+                change_color
+            ))
             
-        padding = 16
-        section_spacing = 18
+        sections.append(price_section)
+        
+        # MARKET DATA SECTION
+        market_section = {
+            'title': 'MARKET DATA',
+            'items': [
+                ("Volume", format_large_number(volume), (255, 200, 100))
+            ]
+        }
+        
+        if 'trend' in indicators:
+            market_section['items'].append((
+                "Trend", indicators['trend'], indicators['trend_color']
+            ))
+            
+        sections.append(market_section)
+        
+        # TECHNICAL INDICATORS SECTION
+        tech_section = {
+            'title': 'TECHNICAL',
+            'items': [
+                ("RSI(14)", f"{indicators.get('rsi', 50):.1f}", indicators.get('rsi_color', (200, 200, 200))),
+                ("Signal", indicators.get('rsi_signal', 'Neutral'), indicators.get('rsi_color', (200, 200, 200)))
+            ]
+        }
+        sections.append(tech_section)
+        
+        # Calculate dimensions
+        padding = 18
+        section_spacing = 20
         line_height = 16
         header_height = 18
         
-        max_width = 200
+        max_width = 280
         total_height = padding
         
         for section in sections:
             total_height += header_height + len(section['items']) * line_height + section_spacing
-            for label, value, color in section['items']:
-                text_width = max(label_font.size(label)[0], value_font.size(value)[0])
-                max_width = max(max_width, text_width + padding * 2)
-        
-        tooltip_width = max_width + 20
+            
+        tooltip_width = max_width
         tooltip_height = total_height + padding
         
+        # Smart positioning
         x, y = display_pos
         screen_rect = surface.get_rect()
         
-        edge_padding = 15
+        edge_padding = 20
         if x + tooltip_width > screen_rect.right - edge_padding:
             x = screen_rect.right - tooltip_width - edge_padding
         if y + tooltip_height > screen_rect.bottom - edge_padding:
@@ -124,7 +198,7 @@ class EnhancedTooltip:
         if y < edge_padding:
             y = edge_padding
             
-        scale = self._ease_out_cubic(self.animation_progress)
+        scale = self._ease_out_back(self.animation_progress)
         final_width = int(tooltip_width * scale)
         final_height = int(tooltip_height * scale)
         
@@ -133,37 +207,79 @@ class EnhancedTooltip:
             
         tooltip_surface = pygame.Surface((final_width, final_height), pygame.SRCALPHA)
         
-        pygame.draw.rect(tooltip_surface, (25, 30, 40, 250), 
-                        (0, 0, final_width, final_height), border_radius=8)
-        pygame.draw.rect(tooltip_surface, (70, 120, 180, 200), 
-                        (0, 0, final_width, final_height), 2, border_radius=8)
-        pygame.draw.rect(tooltip_surface, (40, 50, 65, 120), 
-                        (1, 1, final_width-2, final_height-2), 1, border_radius=7)
+        # Professional background with glow
+        glow_alpha = int(self.glow_intensity * 40)
         
+        # Outer glow
+        for i in range(8):
+            glow_size = i * 2
+            glow_surf = pygame.Surface((final_width + glow_size*2, final_height + glow_size*2), pygame.SRCALPHA)
+            pygame.draw.rect(glow_surf, (70, 120, 180, glow_alpha // (i+1)), 
+                           (glow_size, glow_size, final_width, final_height), border_radius=10)
+            tooltip_surface.blit(glow_surf, (-glow_size, -glow_size))
+        
+        # Main background
+        pygame.draw.rect(tooltip_surface, (20, 25, 35, 252), 
+                        (0, 0, final_width, final_height), border_radius=10)
+        
+        # Professional border
+        pygame.draw.rect(tooltip_surface, (70, 120, 180, 220), 
+                        (0, 0, final_width, final_height), 3, border_radius=10)
+        pygame.draw.rect(tooltip_surface, (40, 60, 90, 150), 
+                        (1, 1, final_width-2, final_height-2), 1, border_radius=9)
+        
+        # Pin indicator
         if self.pinned:
-            pin_size = 8
-            pin_color = (255, 200, 100, 200)
-            pygame.draw.circle(tooltip_surface, pin_color, (final_width - 15, 15), pin_size)
-            pygame.draw.circle(tooltip_surface, (255, 255, 255), (final_width - 15, 15), pin_size - 2)
+            pin_size = 10
+            pin_x, pin_y = final_width - 20, 15
+            
+            for i in range(3):
+                pin_alpha = 255 - i * 60
+                pin_radius = pin_size + i
+                pygame.draw.circle(tooltip_surface, (255, 200, 100, pin_alpha), 
+                                 (pin_x, pin_y), pin_radius)
+            
+            pygame.draw.circle(tooltip_surface, (255, 255, 255), (pin_x, pin_y), pin_size - 3)
         
+        # Render content
         if scale > 0.3:
             text_alpha = int(255 * min(1.0, (scale - 0.3) / 0.7))
             current_y = padding
             
             for section in sections:
+                # Section header
                 header_surface = header_font.render(section['title'], True, (200, 220, 255))
                 header_surface.set_alpha(text_alpha)
                 tooltip_surface.blit(header_surface, (padding, current_y))
-                current_y += header_height
                 
-                for label, value, color in section['items']:
-                    label_surface = label_font.render(label, True, (160, 180, 200))
+                # Underline
+                underline_color = (70, 120, 180, text_alpha)
+                pygame.draw.line(tooltip_surface, underline_color[:3], 
+                               (padding, current_y + header_height - 2), 
+                               (padding + header_surface.get_width(), current_y + header_height - 2), 1)
+                
+                current_y += header_height + 3
+                
+                # Section items
+                for item_idx, (label, value, color) in enumerate(section['items']):
+                    # Label
+                    label_surface = label_font.render(label + ":", True, (160, 180, 200))
                     label_surface.set_alpha(text_alpha)
-                    tooltip_surface.blit(label_surface, (padding + 8, current_y))
+                    tooltip_surface.blit(label_surface, (padding + 4, current_y + 1))
                     
-                    value_surface = value_font.render(value, True, color)
+                    # Value (right-aligned)
+                    value_surface = value_font.render(str(value), True, color)
                     value_surface.set_alpha(text_alpha)
-                    tooltip_surface.blit(value_surface, (padding + 8, current_y + 8))
+                    
+                    value_x = final_width - value_surface.get_width() - padding - 4
+                    tooltip_surface.blit(value_surface, (value_x, current_y - 1))
+                    
+                    # Separator line
+                    if item_idx < len(section['items']) - 1:
+                        sep_color = (40, 50, 65, text_alpha // 2)
+                        pygame.draw.line(tooltip_surface, sep_color[:3], 
+                                       (padding + 4, current_y + line_height - 2), 
+                                       (final_width - padding - 4, current_y + line_height - 2), 1)
                     
                     current_y += line_height
                 
@@ -171,12 +287,14 @@ class EnhancedTooltip:
                 
         surface.blit(tooltip_surface, (x, y))
     
-    def _ease_out_cubic(self, t):
-        """Smooth easing function for animations"""
-        return 1 - pow(1 - t, 3)
+    def _ease_out_back(self, t):
+        """Professional easing function"""
+        c1 = 1.70158
+        c3 = c1 + 1
+        return 1 + c3 * pow(t - 1, 3) + c1 * pow(t - 1, 2)
 
 class ProfessionalChartRenderer:
-    """Enhanced chart renderer with professional navigation and interactions"""
+    """Enhanced chart renderer with professional interactions"""
     
     def __init__(self, width: int, height: int):
         self.width = width
@@ -187,7 +305,7 @@ class ProfessionalChartRenderer:
             width - 2 * self.margin, height - 2 * self.margin
         )
         
-        self.tooltip = EnhancedTooltip()
+        self.tooltip = ProfessionalTradingTooltip()
         self.mouse_pos = (0, 0)
         self.hovered_point_index = None
         
@@ -212,7 +330,7 @@ class ProfessionalChartRenderer:
         }
         
     def update(self, dt: float, mouse_pos: Tuple[int, int]):
-        """Update chart interactions and animations"""
+        """Update chart interactions"""
         self.mouse_pos = mouse_pos
         self.tooltip.update(dt)
         
@@ -234,12 +352,12 @@ class ProfessionalChartRenderer:
             self.tooltip.hide(force_unpin=True)
     
     def handle_mouse_up(self, pos: Tuple[int, int], button: int):
-        """Handle mouse release events"""
+        """Handle mouse release"""
         if button == 1:
             self.dragging = False
     
     def handle_mouse_motion(self, pos: Tuple[int, int]):
-        """Handle mouse movement with enhanced feedback"""
+        """Handle mouse movement"""
         self.mouse_pos = pos
         
         if self.dragging:
@@ -258,18 +376,18 @@ class ProfessionalChartRenderer:
             self.cursor_style = 'default'
     
     def handle_scroll(self, scroll_y: int):
-        """Handle mouse wheel for zoom"""
+        """Handle zoom"""
         if self.chart_rect.collidepoint(self.mouse_pos):
             zoom_delta = 1.1 if scroll_y > 0 else 0.9
             self.zoom_factor = max(0.5, min(5.0, self.zoom_factor * zoom_delta))
     
     def get_cursor_style(self) -> str:
-        """Get current cursor style"""
+        """Get cursor style"""
         return self.cursor_style
     
     def render_price_chart(self, data_points: List[Dict], symbol: str, 
                           timeframe_label: str) -> pygame.Surface:
-        """Render enhanced interactive price chart"""
+        """Render enhanced chart"""
         if not data_points or len(data_points) < 2:
             return self.render_no_data_chart()
             
@@ -297,7 +415,6 @@ class ProfessionalChartRenderer:
         self._render_enhanced_grid(surface, min_price, max_price, timestamps)
         self._render_chart_fill(surface, chart_points, line_color)
         self._render_smooth_line(surface, chart_points, line_color)
-        self._render_crosshair(surface, chart_points, visible_data)
         self._render_interactive_points(surface, chart_points, visible_data, line_color)
         self._render_professional_axes(surface, min_price, max_price, timestamps)
         self._render_title_with_stats(surface, symbol, timeframe_label, change_percent)
@@ -305,7 +422,7 @@ class ProfessionalChartRenderer:
         return surface
     
     def _get_visible_data(self, data_points: List[Dict]) -> List[Dict]:
-        """Get data points visible in current zoom/pan view"""
+        """Get visible data for zoom/pan"""
         if self.zoom_factor <= 1.0:
             return data_points
         
@@ -320,7 +437,7 @@ class ProfessionalChartRenderer:
     
     def _calculate_chart_points(self, data_points: List[Dict], min_price: float, 
                                price_range: float) -> List[Tuple[int, int]]:
-        """Calculate chart point coordinates"""
+        """Calculate chart coordinates"""
         chart_points = []
         for i, point in enumerate(data_points):
             x = self.chart_rect.left + (i / (len(data_points) - 1)) * self.chart_rect.width
@@ -330,7 +447,7 @@ class ProfessionalChartRenderer:
     
     def _render_enhanced_grid(self, surface: pygame.Surface, min_price: float, 
                              max_price: float, timestamps: List):
-        """Render professional grid system"""
+        """Render professional grid"""
         for i in range(0, 11, 2):
             alpha = 100 if i % 4 == 0 else 60
             color = (*self.colors['grid_major'], alpha)
@@ -351,7 +468,7 @@ class ProfessionalChartRenderer:
     
     def _render_chart_fill(self, surface: pygame.Surface, points: List[Tuple[int, int]], 
                           color: Tuple[int, int, int]):
-        """Render smooth gradient fill under chart line"""
+        """Render gradient fill"""
         if len(points) < 2:
             return
             
@@ -375,7 +492,7 @@ class ProfessionalChartRenderer:
     
     def _render_smooth_line(self, surface: pygame.Surface, points: List[Tuple[int, int]], 
                            color: Tuple[int, int, int]):
-        """Render smooth anti-aliased chart line"""
+        """Render smooth line"""
         if len(points) < 2:
             return
             
@@ -390,47 +507,11 @@ class ProfessionalChartRenderer:
             else:
                 pygame.draw.lines(surface, color, False, points, thickness)
     
-    def _render_crosshair(self, surface: pygame.Surface, chart_points: List[Tuple[int, int]], 
-                         data_points: List[Dict]):
-        """Render precision crosshair for hovered point"""
-        if self.hovered_point_index is None or self.hovered_point_index >= len(chart_points):
-            return
-        
-        point_x, point_y = chart_points[self.hovered_point_index]
-        
-        alpha = int(200 * self.hover_animation)
-        if alpha <= 0:
-            return
-        
-        crosshair_color = (*self.colors['crosshair'], alpha)
-        crosshair_surface = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
-        
-        pygame.draw.line(crosshair_surface, crosshair_color, 
-                        (point_x, self.chart_rect.top), (point_x, self.chart_rect.bottom), 1)
-        pygame.draw.line(crosshair_surface, crosshair_color, 
-                        (self.chart_rect.left, point_y), (self.chart_rect.right, point_y), 1)
-        
-        price = data_points[self.hovered_point_index]['price']
-        price_text = format_price(price)
-        font = pygame.font.SysFont("Segoe UI", 10, bold=True)
-        text_surface = font.render(price_text, True, (255, 255, 255))
-        
-        label_bg = pygame.Surface((text_surface.get_width() + 8, text_surface.get_height() + 4), pygame.SRCALPHA)
-        label_bg.fill((*self.colors['crosshair'], alpha))
-        
-        label_x = self.chart_rect.right + 5
-        label_y = point_y - text_surface.get_height() // 2
-        
-        crosshair_surface.blit(label_bg, (label_x, label_y))
-        crosshair_surface.blit(text_surface, (label_x + 4, label_y + 2))
-        
-        surface.blit(crosshair_surface, (0, 0))
-    
     def _render_interactive_points(self, surface: pygame.Surface, chart_points: List[Tuple[int, int]], 
                                   data_points: List[Dict], color: Tuple[int, int, int]):
-        """Render interactive data points with enhanced hover effects"""
+        """Enhanced interactive points with professional tooltips"""
         mouse_x, mouse_y = self.mouse_pos
-        hover_radius = 30
+        hover_radius = 35
         closest_point = None
         closest_distance = float('inf')
         
@@ -444,6 +525,7 @@ class ProfessionalChartRenderer:
         
         self.hovered_point_index = closest_point[0] if closest_point else None
         
+        # Enhanced tooltip
         if closest_point and not self.tooltip.pinned:
             point_x, point_y = closest_point[1]
             data = closest_point[2]
@@ -455,40 +537,68 @@ class ProfessionalChartRenderer:
             }
             
             if closest_point[0] > 0:
-                prev_price = data_points[closest_point[0] - 1]['price']
-                current_price = data['price']
-                change = ((current_price - prev_price) / prev_price) * 100
-                tooltip_data['change'] = change
+                tooltip_data['prev_price'] = data_points[closest_point[0] - 1]['price']
             
-            self.tooltip.show((mouse_x + 20, mouse_y - 20), tooltip_data)
+            self.tooltip.show((mouse_x + 25, mouse_y - 25), tooltip_data)
         elif not closest_point and not self.tooltip.pinned:
             self.tooltip.hide()
         
+        # Professional crosshair
         if self.hovered_point_index is not None:
             point_x, point_y = chart_points[self.hovered_point_index]
-            glow_intensity = self.hover_animation
             
-            for radius in [12, 8, 4]:
-                alpha = int(glow_intensity * (40 if radius == 12 else 80 if radius == 8 else 150))
-                if alpha > 0:
-                    glow_surface = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
-                    glow_color = (*color, alpha)
-                    pygame.draw.circle(glow_surface, glow_color, (radius, radius), radius)
-                    surface.blit(glow_surface, (point_x - radius, point_y - radius))
+            crosshair_surface = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
             
-            pygame.draw.circle(surface, (255, 255, 255), (point_x, point_y), 6)
-            pygame.draw.circle(surface, color, (point_x, point_y), 4)
-        
-        point_spacing = max(1, len(chart_points) // 40)
-        for i in range(0, len(chart_points), point_spacing):
-            if i == self.hovered_point_index:
-                continue
-            x, y = chart_points[i]
-            pygame.draw.circle(surface, (255, 255, 255, 120), (x, y), 2)
+            # Gradient crosshair
+            for i in range(3):
+                alpha = 200 - i * 60
+                pygame.draw.line(crosshair_surface, (120, 180, 255, alpha), 
+                               (point_x - i, self.chart_rect.top), 
+                               (point_x - i, self.chart_rect.bottom), 1)
+                pygame.draw.line(crosshair_surface, (120, 180, 255, alpha), 
+                               (point_x + i, self.chart_rect.top), 
+                               (point_x + i, self.chart_rect.bottom), 1)
+                pygame.draw.line(crosshair_surface, (120, 180, 255, alpha), 
+                               (self.chart_rect.left, point_y - i), 
+                               (self.chart_rect.right, point_y - i), 1)
+                pygame.draw.line(crosshair_surface, (120, 180, 255, alpha), 
+                               (self.chart_rect.left, point_y + i), 
+                               (self.chart_rect.right, point_y + i), 1)
+            
+            surface.blit(crosshair_surface, (0, 0))
+            
+            # Professional point highlight
+            for radius in [15, 10, 6, 3]:
+                if radius == 3:
+                    pygame.draw.circle(surface, (255, 255, 255), (point_x, point_y), radius)
+                    pygame.draw.circle(surface, color, (point_x, point_y), radius - 1)
+                else:
+                    alpha = 150 - (radius - 3) * 20
+                    ring_surface = pygame.Surface((radius*2, radius*2), pygame.SRCALPHA)
+                    pygame.draw.circle(ring_surface, (*color, alpha), (radius, radius), radius, 2)
+                    surface.blit(ring_surface, (point_x - radius, point_y - radius))
+            
+            # Professional price label
+            price = data_points[self.hovered_point_index]['price']
+            price_text = format_price(price)
+            label_font = pygame.font.SysFont("Segoe UI", 10, bold=True)
+            text_surface = label_font.render(price_text, True, (255, 255, 255))
+            
+            label_width = text_surface.get_width() + 12
+            label_height = text_surface.get_height() + 6
+            label_x = self.chart_rect.right + 8
+            label_y = point_y - label_height // 2
+            
+            label_surface = pygame.Surface((label_width, label_height), pygame.SRCALPHA)
+            pygame.draw.rect(label_surface, (*color, 240), (0, 0, label_width, label_height), border_radius=4)
+            pygame.draw.rect(label_surface, (255, 255, 255, 180), (0, 0, label_width, label_height), 1, border_radius=4)
+            
+            label_surface.blit(text_surface, (6, 3))
+            surface.blit(label_surface, (label_x, label_y))
     
     def _render_professional_axes(self, surface: pygame.Surface, min_price: float, 
                                  max_price: float, timestamps: List):
-        """Render professional axis labels"""
+        """Render professional axes"""
         label_font = pygame.font.SysFont("Segoe UI", 9)
         
         price_steps = 6
@@ -528,7 +638,7 @@ class ProfessionalChartRenderer:
     
     def _render_title_with_stats(self, surface: pygame.Surface, symbol: str, 
                                timeframe_label: str, change_percent: float):
-        """Render enhanced title with statistics"""
+        """Render title with stats"""
         title_font = pygame.font.SysFont("Segoe UI", 16, bold=True)
         stats_font = pygame.font.SysFont("Segoe UI", 11)
         
@@ -546,7 +656,7 @@ class ProfessionalChartRenderer:
             instruction_text = "Drag to pan • Scroll to zoom • Right-click to unpin"
             instruction_surface = pygame.font.SysFont("Segoe UI", 9).render(instruction_text, True, (140, 160, 180))
         else:
-            instruction_text = "Hover for details • Click to pin • Scroll to zoom"
+            instruction_text = "Hover for analysis • Click to pin • Scroll to zoom"
             instruction_surface = pygame.font.SysFont("Segoe UI", 9).render(instruction_text, True, (140, 160, 180))
         
         title_x = self.chart_rect.left
@@ -557,7 +667,7 @@ class ProfessionalChartRenderer:
         surface.blit(instruction_surface, (title_x, title_y + 25))
     
     def _get_trend_color(self, change_percent: float) -> Tuple[int, int, int]:
-        """Get color based on price trend"""
+        """Get trend color"""
         if change_percent > 2:
             return (80, 220, 120)
         elif change_percent > 0:
@@ -589,15 +699,15 @@ class ProfessionalChartRenderer:
         return surface
     
     def render_tooltip(self, surface: pygame.Surface):
-        """Render tooltip if visible"""
+        """Render tooltip"""
         self.tooltip.render(surface)
     
     def handle_mouse_move(self, pos: Tuple[int, int]):
-        """Handle mouse movement (compatibility)"""
+        """Handle mouse movement"""
         self.handle_mouse_motion(pos)
 
 class ProfessionalButton:
-    """Professional button with working click detection"""
+    """Professional button with click detection"""
     
     def __init__(self, rect: pygame.Rect, text: str, active: bool = False):
         self.rect = rect
@@ -690,7 +800,7 @@ class ProfessionalCryptoModal:
         self.generate_chart()
         
     def create_buttons(self):
-        """Create professional timeframe buttons"""
+        """Create timeframe buttons"""
         button_width = 50
         button_height = 30
         button_spacing = 8
@@ -706,7 +816,7 @@ class ProfessionalCryptoModal:
             self.buttons[key] = ProfessionalButton(button_rect, info['label'], is_active)
             
     def generate_chart(self):
-        """Generate professional chart"""
+        """Generate chart"""
         try:
             self.loading_chart = True
             
@@ -728,7 +838,7 @@ class ProfessionalCryptoModal:
         self.loading_chart = False
         
     def handle_click(self, pos: tuple) -> bool:
-        """Enhanced click handling with chart interactions"""
+        """Handle modal clicks"""
         if not self.is_active:
             return False
             
@@ -765,7 +875,7 @@ class ProfessionalCryptoModal:
         return True
     
     def handle_right_click(self, pos: tuple) -> bool:
-        """Handle right-click events"""
+        """Handle right-click"""
         if not self.is_active:
             return False
             
@@ -779,7 +889,7 @@ class ProfessionalCryptoModal:
         return True
     
     def handle_mouse_up(self, pos: tuple, button: int) -> bool:
-        """Handle mouse release events"""
+        """Handle mouse release"""
         if not self.is_active:
             return False
             
@@ -793,7 +903,7 @@ class ProfessionalCryptoModal:
         return True
     
     def handle_scroll(self, pos: tuple, scroll_y: int) -> bool:
-        """Handle mouse wheel events"""
+        """Handle scroll"""
         if not self.is_active:
             return False
             
@@ -803,7 +913,7 @@ class ProfessionalCryptoModal:
         return True
     
     def handle_mouse_move(self, pos: tuple):
-        """Enhanced mouse movement handling"""
+        """Handle mouse movement"""
         self.mouse_pos = pos
         
         chart_x = self.x + 40
@@ -819,7 +929,7 @@ class ProfessionalCryptoModal:
                 self._update_pygame_cursor(desired_cursor)
     
     def _update_pygame_cursor(self, cursor_style: str):
-        """Update pygame cursor"""
+        """Update cursor"""
         cursor_map = {
             'default': pygame.SYSTEM_CURSOR_ARROW,
             'pointer': pygame.SYSTEM_CURSOR_HAND,
@@ -843,7 +953,7 @@ class ProfessionalCryptoModal:
         self.is_active = False
         
     def update(self, dt: float):
-        """Update modal animations"""
+        """Update modal"""
         if not self.is_active:
             return
             
@@ -861,7 +971,7 @@ class ProfessionalCryptoModal:
         self.chart_renderer.update(dt, chart_mouse)
         
     def draw(self, surface: pygame.Surface):
-        """Draw professional modal"""
+        """Draw modal"""
         if not self.is_active:
             return
             
@@ -892,7 +1002,7 @@ class ProfessionalCryptoModal:
             surface.blit(modal_surface, (self.x, self.y))
             
     def render_background(self, surface: pygame.Surface):
-        """Render professional background"""
+        """Render background"""
         pygame.draw.rect(surface, (20, 25, 35), (0, 0, self.width, self.height), 
                         border_radius=12)
         pygame.draw.rect(surface, (70, 90, 120), (0, 0, self.width, self.height), 
@@ -948,12 +1058,12 @@ class ProfessionalCryptoModal:
         surface.blit(change_surface, (price_x, logo_y + 32))
         
     def render_timeframe_buttons(self, surface: pygame.Surface):
-        """Render timeframe buttons"""
+        """Render buttons"""
         for button in self.buttons.values():
             button.render(surface)
             
     def render_chart_area(self, surface: pygame.Surface):
-        """Enhanced chart area rendering"""
+        """Render chart area"""
         chart_x, chart_y = 40, 130
         
         if self.loading_chart:

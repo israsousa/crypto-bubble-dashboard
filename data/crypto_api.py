@@ -1,5 +1,5 @@
 """
-Cryptocurrency API data fetching and management
+Updated Cryptocurrency API with Real-Time Fear & Greed Integration
 """
 
 import requests
@@ -15,20 +15,26 @@ from utils.data_loader import (
     loading_state, update_loading_state, loading_complete,
     data_lock, news_lock, fear_greed_lock
 )
+from utils.realtime_fear_greed import (
+    realtime_fear_greed, update_fear_greed_with_realtime, 
+    start_realtime_fear_greed
+)
 
 # Global data storage
 crypto_data = []
 news_list = []
 fear_greed_data = {
     'value': 50,
-    'label': "Neutral",
+    'label': "Neutral", 
     'timestamp': None,
     'yesterday': {'value': None, 'label': None, 'change': 0},
     'last_week': {'value': None, 'label': None, 'change': 0},
     'last_month': {'value': None, 'label': None, 'change': 0},
     'trend_7d': 0,
     'trend_30d': 0,
-    'last_updated': None
+    'last_updated': None,
+    'is_realtime': False,
+    'data_age': 0
 }
 
 def fetch_crypto_data():
@@ -65,7 +71,7 @@ def fetch_crypto_news():
         return []
 
 def fetch_fear_greed_index():
-    """Enhanced Fear & Greed Index fetching"""
+    """Enhanced Fear & Greed Index fetching (for historical data only)"""
     try:
         url = "https://api.alternative.me/fng/?limit=31"
         response = requests.get(url, timeout=15)
@@ -203,22 +209,25 @@ def update_news_data():
         sleep(NEWS_UPDATE_INTERVAL)
 
 def update_fear_greed():
-    """Background thread to update Fear & Greed Index"""
+    """Background thread to update Fear & Greed Index (historical data only)"""
     global fear_greed_data
     
     retry_count = 0
     max_retries = 3
     
+    # Start real-time calculator
+    print("🚀 Starting real-time Fear & Greed calculator...")
+    start_realtime_fear_greed()
+    
     while True:
         try:
-            print("Fetching Fear & Greed Index data...")
+            print("Fetching Fear & Greed Index historical data...")
             data = fetch_fear_greed_index()
             
             if data:
                 with fear_greed_lock:
+                    # Use API data for historical comparisons
                     fear_greed_data.update({
-                        'value': data['current']['value'],
-                        'label': data['current']['label'],
                         'timestamp': data['current']['timestamp'],
                         'yesterday': data['yesterday'],
                         'last_week': data['last_week'],
@@ -227,13 +236,18 @@ def update_fear_greed():
                         'trend_30d': data['trend_30d'],
                         'last_updated': time.time()
                     })
+                    
+                    # Update with real-time current value
+                    fear_greed_data = update_fear_greed_with_realtime(fear_greed_data)
                 
                 if not loading_state['fear_greed_data']:
                     update_loading_state('fear_greed_data', True)
                     print("Fear & Greed Index data loaded successfully")
                 
                 retry_count = 0
-                print(f"Fear & Greed Index updated: {data['current']['value']} ({data['current']['label']})")
+                current_val = fear_greed_data['value']
+                realtime_status = "REALTIME" if fear_greed_data['is_realtime'] else "API"
+                print(f"Fear & Greed Index updated: {current_val} ({realtime_status})")
             else:
                 retry_count += 1
                 if retry_count <= max_retries:
@@ -244,7 +258,8 @@ def update_fear_greed():
                     print("Max retries reached for Fear & Greed data")
                     retry_count = 0
             
-            sleep(FEAR_GREED_UPDATE_INTERVAL)
+            # Update every 30 minutes for historical data, but real-time updates continue
+            sleep(1800)  # 30 minutes
             
         except Exception as e:
             print(f"Error in fear_greed update thread: {e}")
@@ -252,8 +267,24 @@ def update_fear_greed():
             if retry_count <= max_retries:
                 sleep(60)
             else:
-                sleep(FEAR_GREED_UPDATE_INTERVAL)
+                sleep(1800)
                 retry_count = 0
+
+def update_realtime_fear_greed():
+    """Background thread to update real-time Fear & Greed every minute"""
+    global fear_greed_data
+    
+    while True:
+        try:
+            with fear_greed_lock:
+                # Update current value with real-time calculation
+                fear_greed_data = update_fear_greed_with_realtime(fear_greed_data)
+            
+            sleep(60)  # Update every minute
+            
+        except Exception as e:
+            print(f"Error in real-time F&G update: {e}")
+            sleep(60)
 
 def get_crypto_data():
     """Get current crypto data thread-safely"""
@@ -268,4 +299,6 @@ def get_news_data():
 def get_fear_greed_data():
     """Get current fear & greed data thread-safely"""
     with fear_greed_lock:
-        return fear_greed_data.copy()
+        # Always update with latest real-time value before returning
+        updated_data = update_fear_greed_with_realtime(fear_greed_data.copy())
+        return updated_data

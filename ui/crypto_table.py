@@ -1,5 +1,5 @@
 """
-Cryptocurrency table component
+Cryptocurrency table component with reduced font sizes
 """
 
 import pygame
@@ -10,7 +10,7 @@ from utils.rank_tracker import get_daily_rank_change
 from utils.formatters import format_large_number, format_supply, format_price
 
 class CryptoTable:
-    """Enhanced table with daily rank tracking"""
+    """Enhanced table with daily rank tracking and smaller fonts"""
     
     def __init__(self):
         self.page_size = 15
@@ -21,13 +21,13 @@ class CryptoTable:
     
     def calculate_optimal_layout(self, available_height):
         """Calculate optimal layout"""
-        header_height = 45
-        footer_height = 25
-        margin = 10
+        header_height = 40
+        footer_height = 20
+        margin = 8
         
         usable_height = available_height - header_height - footer_height - margin
-        min_row_height = 32
-        max_row_height = 48
+        min_row_height = 28
+        max_row_height = 42
         
         best_config = None
         best_efficiency = 0
@@ -64,11 +64,11 @@ class CryptoTable:
             self.last_page_switch = now
     
     def draw(self, surface, crypto_data):
-        """Draw the cryptocurrency table"""
+        """Draw the cryptocurrency table with smaller fonts"""
         surface.fill(COLORS['panel_bg'])
         
         if not crypto_data:
-            font = pygame.font.SysFont("Arial", 18, bold=True)
+            font = pygame.font.SysFont("Arial", 16, bold=True)
             loading_surface = font.render("Loading cryptocurrency data...", True, COLORS['neutral'])
             surface.blit(loading_surface, (10, 50))
             return
@@ -86,11 +86,11 @@ class CryptoTable:
             col_positions.append(x)
             x += w * width
         
-        # Font sizes
-        header_font_size = min(22, max(16, row_height // 2 + 6))
-        data_font_size = min(20, max(14, row_height // 2 + 2))
-        rank_font_size = min(20, max(14, row_height // 3 + 4))
-        change_font_size = min(16, max(12, row_height // 4 + 3))
+        # Font sizes (reduzidos)
+        header_font_size = min(16, max(14, row_height // 2 + 2))
+        data_font_size = min(10, max(12, row_height // 2 - 1))
+        rank_font_size = min(16, max(12, row_height // 3 + 1))
+        change_font_size = min(14, max(10, row_height // 4))
         
         header_font = pygame.font.SysFont("Arial", header_font_size, bold=True)
         data_font = pygame.font.SysFont("Arial", data_font_size, bold=True)
@@ -103,7 +103,7 @@ class CryptoTable:
         
         for i, header in enumerate(self.headers):
             text_surface = header_font.render(header, True, (220, 220, 220))
-            surface.blit(text_surface, (col_positions[i] + 8, 8))
+            surface.blit(text_surface, (col_positions[i] + 8, 6))
         
         pygame.draw.line(surface, (60, 60, 80), (0, header_height), (width, header_height), 2)
         
@@ -139,7 +139,7 @@ class CryptoTable:
             surface.blit(rank_surface, (rank_x, rank_y))
             
             if change_indicator and change_indicator != "–":
-                change_x = rank_x + rank_surface.get_width() + 8
+                change_x = rank_x + rank_surface.get_width() + 6
                 
                 if rank_change > 0:
                     change_color = COLORS['positive']
@@ -155,7 +155,7 @@ class CryptoTable:
             # Coin column with logo
             logo_path = f"assets/logos/{symbol.lower()}.png"
             coin_x = col_positions[1] + 8
-            logo_size = min(28, row_height - 4)
+            logo_size = min(24, row_height - 4)
             
             if os.path.exists(logo_path):
                 try:
@@ -163,7 +163,7 @@ class CryptoTable:
                     logo = pygame.transform.smoothscale(logo, (logo_size, logo_size))
                     logo_y = y + (row_height - logo_size) // 2
                     surface.blit(logo, (coin_x, logo_y))
-                    coin_x += logo_size + 8
+                    coin_x += logo_size + 6
                 except:
                     pass
             
@@ -202,8 +202,8 @@ class CryptoTable:
         total_pages = max(1, (len(crypto_data) + rows_per_page - 1) // rows_per_page)
         page_info = f"Page {self.current_page + 1} of {total_pages} • {rows_per_page} rows • {len(crypto_data)} cryptocurrencies"
         
-        page_font = pygame.font.SysFont("Arial", max(12, data_font_size - 4))
+        page_font = pygame.font.SysFont("Arial", max(10, data_font_size - 3))
         page_surface = page_font.render(page_info, True, COLORS['neutral'])
         
-        page_y = height - 20
+        page_y = height - 18
         surface.blit(page_surface, (width - page_surface.get_width() - 10, page_y))

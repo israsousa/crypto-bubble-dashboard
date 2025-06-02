@@ -118,32 +118,36 @@ def draw_fear_greed_chart(surface, fear_greed_data):
     last_month_data = fear_greed_data['last_month']
     last_updated = fear_greed_data.get('last_updated', None)
     
-    # Professional title section - CENTERED
+    # Professional title section with timestamp in top-right
     title_font = pygame.font.SysFont("Segoe UI", 18, bold=True)
     title_surface = title_font.render("Fear & Greed Index", True, (220, 230, 250))
     
-    # Status indicator
-    if last_updated:
-        import time
-        time_since_update = time.time() - last_updated
-        if time_since_update < 3600:
-            status_color = (80, 200, 120)
-            status_text = "●"
-        else:
-            status_color = (255, 200, 100)
-            status_text = "◐"
-    else:
-        status_color = (140, 160, 180)
-        status_text = "○"
-    
-    status_font = pygame.font.SysFont("Segoe UI", 14, bold=True)
-    status_surface = status_font.render(status_text, True, status_color)
-    
-    # Center title perfectly
+    # Center title
     title_x = (width - title_surface.get_width()) // 2
     title_y = 12
     surface.blit(title_surface, (title_x, title_y))
-    surface.blit(status_surface, (title_x + title_surface.get_width() + 10, title_y + 1))
+    
+    # Last updated timestamp (top-right)
+    if last_updated:
+        import time
+        update_time = time.time()
+        if hasattr(time, 'strftime'):
+            try:
+                formatted_time = time.strftime('%H:%M', time.localtime(last_updated))
+                timestamp_text = f"Last Updated: {formatted_time}"
+            except:
+                timestamp_text = "Last Updated: --:--"
+        else:
+            timestamp_text = "Last Updated: --:--"
+    else:
+        timestamp_text = "Last Updated: --:--"
+    
+    timestamp_font = pygame.font.SysFont("Segoe UI", 10)
+    timestamp_surface = timestamp_font.render(timestamp_text, True, (140, 160, 180))
+    
+    timestamp_x = width - timestamp_surface.get_width() - 10
+    timestamp_y = 8
+    surface.blit(timestamp_surface, (timestamp_x, timestamp_y))
     
     # Chart positioning - BETTER CENTERED
     chart_center_x = int(width * 0.40)
@@ -286,9 +290,9 @@ def draw_fear_greed_chart(surface, fear_greed_data):
     for scale_value, scale_text, scale_desc, scale_color in scale_points:
         scale_angle = math.pi * (1 - scale_value / 100)
         
-        # REFINED: Shorter tick marks positioned closer to center
-        indicator_start_radius = chart_radius * 0.75  # Moved closer to center (was 0.6)
-        indicator_end_radius = chart_radius * 0.85    # Shorter length (50% reduction)
+        # REFINED: Tick marks with gap from center value
+        indicator_start_radius = chart_radius * 0.75  # Moved outward for gap (was 0.75)
+        indicator_end_radius = chart_radius * 0.72    # Slightly adjusted end position
         
         start_x = chart_center_x + int(indicator_start_radius * math.cos(scale_angle))
         start_y = chart_center_y - int(indicator_start_radius * math.sin(scale_angle))

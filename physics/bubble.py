@@ -1,6 +1,7 @@
 """
 Enhanced Bubble Physics with Dynamic Scaling and Space-Efficient Layout
 Bubbles scale to available space with clean, size-adaptive content display
+UPDATED: Always show crypto symbol (abbreviation) instead of full name
 """
 
 import pygame
@@ -53,6 +54,9 @@ class EnhancedFloatingBubble:
     def __init__(self, space, coin_data, bounds, screen_size, scale_factor=1.0):
         self.coin_data = coin_data
         self.symbol = coin_data['symbol'].upper()
+        # Debug: ensure we're getting symbol, not name
+        if len(self.symbol) > 5:  # If it's too long, it might be the name
+            print(f"⚠️ Warning: Long symbol detected: {self.symbol} - Data: {coin_data.get('symbol')}")
         self.price_change = coin_data.get('price_change_percentage_24h', 0.0) or 0.0
         self.market_cap = coin_data.get('market_cap', 1e9) or 1e9
         self.last_price_change = self.price_change
@@ -193,27 +197,10 @@ class EnhancedFloatingBubble:
         self.content_spacing = max(2, int(self.radius * 0.1))
 
     def get_display_name(self):
-        """Get appropriate display name based on bubble size"""
-        coin_name = self.coin_data.get('name', self.symbol)
-        
-        if self.radius < self.small_threshold:
-            # Small: Use symbol or short name
-            if len(self.symbol) <= 4:
-                return self.symbol
-            else:
-                return self.symbol[:4]
-        elif self.radius < self.medium_threshold:
-            # Medium: Use symbol or truncated name
-            if len(coin_name) <= 8:
-                return coin_name
-            else:
-                return coin_name[:8] + "..."
-        else:
-            # Large: Use full name or longer truncation
-            if len(coin_name) <= 12:
-                return coin_name
-            else:
-                return coin_name[:12] + "..."
+        """UPDATED: Always return symbol (abbreviation) instead of full name"""
+        # Always use the symbol regardless of bubble size
+        # Force uppercase symbol to ensure consistency
+        return self.symbol.upper()
 
     def apply_enhanced_floating_forces(self):
         """Apply floating forces for smooth movement"""
@@ -391,7 +378,7 @@ class EnhancedFloatingBubble:
         
         surface.blit(circle_surf, (x - int(self.radius * 1.1), y - int(self.radius * 1.1)))
         
-        # CLEAN CONTENT DISPLAY (ALL BUBBLES SHOW: LOGO + NAME + % CHANGE)
+        # CLEAN CONTENT DISPLAY (ALL BUBBLES SHOW: LOGO + SYMBOL + % CHANGE)
         content_y = y - int(self.radius * 0.4)
         
         # Logo (top)
@@ -400,16 +387,20 @@ class EnhancedFloatingBubble:
             surface.blit(self.logo_surface, logo_rect)
             next_y = logo_rect.bottom + self.content_spacing
         else:
-            # Text fallback (NO GRAY CIRCLE)
+            # Text fallback (NO GRAY CIRCLE) - Use symbol only
             fallback_font = pygame.font.SysFont("Arial", max(6, int(self.radius * 0.4)), bold=True)
-            fallback_text = self.symbol[:3]
+            fallback_text = self.symbol[:3]  # Use symbol, not name
             fallback_surface = fallback_font.render(fallback_text, True, (255, 255, 255))
             fallback_rect = fallback_surface.get_rect(center=(x, content_y))
             surface.blit(fallback_surface, fallback_rect)
             next_y = fallback_rect.bottom + self.content_spacing
         
-        # Coin name (middle) - size-adaptive
+        # Symbol (middle) - UPDATED: Always show symbol abbreviation
         display_name = self.get_display_name()
+        # Extra safety check - ensure we never show long names
+        if len(display_name) > 5:
+            display_name = self.symbol.upper()[:5]  # Force max 5 chars
+        
         name_font = pygame.font.SysFont("Arial", self.name_font_size, bold=True)
         name_surface = name_font.render(display_name, True, COLORS['text_primary'])
         name_rect = name_surface.get_rect(center=(x, next_y))
@@ -417,13 +408,8 @@ class EnhancedFloatingBubble:
         # Ensure name fits within bubble
         max_width = int(self.radius * 1.8)
         if name_surface.get_width() > max_width:
-            # Truncate further if needed
-            for i in range(len(display_name) - 1, 1, -1):
-                test_name = display_name[:i] + "..."
-                test_surface = name_font.render(test_name, True, COLORS['text_primary'])
-                if test_surface.get_width() <= max_width:
-                    name_surface = test_surface
-                    break
+            # For symbols, they're usually short, but just in case
+            name_surface = name_font.render(display_name[:4], True, COLORS['text_primary'])
         
         surface.blit(name_surface, name_rect)
         next_y = name_rect.bottom + self.content_spacing
